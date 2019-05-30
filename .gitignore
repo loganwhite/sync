@@ -1,0 +1,16 @@
+*.pyc
+*.txt
+*.log
+*.pdf
+*.ini
+*.txt
+__pycache__/
+large/*.pyc
+large/*.txt
+large/*.log
+large/*.pdf
+large/*.ini
+large/__pycache__/
+large/*.txt
+.idea
+venv
