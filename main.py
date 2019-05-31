@@ -10,42 +10,10 @@ import os
 import sys
 import getopt
 
+from Settings import *      # global variables
 
 
 
-# Global Variables
-# k selected path K
-k = 20
-# k selected path have m intersection links
-m = 10
-
-# increase factor for traffic
-traffic_factor = 1
-# the threshold ratio for starting load balancing algorithm
-LB_factor = 1
-
-# flow table capacity for each switch
-TB = 1000
-
-OL = 20000
-
-no_loop_para = 0.00000001
-
-group_num = 2
-
-failed_controller_num = 1
-
-# test flag, true for test
-isWriteFile = True
-
-
-# the controller control power
-a = 500
-
-# the percentage of controlling flows
-ratio = 0.9
-
-topo = "AttMpls"
 
 
 
@@ -90,32 +58,144 @@ def main():
 
     # calculate the groups
     groups_list = cal_cluster_group(cal_distance_matrix(n), group_num, a, n)
+    subnet_list, subgraph_list = cal_subnets(g, groups_list, n)
 
-    subnet_list = []
-    for group in groups_list:
-        group_vs = g.vs.select(group)
-        sub_g = g.subgraph(group_vs)
 
-        # layout = sub_g.layout("kk")
-        # plot(sub_g, layout=layout)
-        subnet = SubNetwork(sub_g, k, m, TB, 1, topo, n)
-        subnet_list.append(subnet)
 
     for matrix in matrices_list[:1]:
         domain_matrices = split_matrix(matrix, groups_list, n)
         n.apply_traffic(matrix)
         print n.calc_link_utilization()
 
-        # apply subnetwork traffic
+        critical_list_whole = get_all_links(n)
+        critical_flow_whole = get_critical_link_flows(n, critical_list_whole)
+        LB = get_link_capacity(n)
+        pathcandidate = get_path_candidate(n)
+        flow_pathid_list = get_flow_path_id(n)
+        op_whole = init_op(n, pathcandidate, flow_pathid_list, LB, g)
+        oldy_whole = get_old_y(n)
+        flows_rate_whole = get_flow_rate(n)
+        all_flow_id_whole = get_all_flows(n)
+        link_rate_whole = get_link_rate(n)
+
+        op_whole.process(oldy_whole, flows_rate_whole, link_rate_whole, all_flow_id_whole)
+
+
+        print n.calc_link_utilization()
+
+        critical_list_subs = []
+        critical_flow_subs = []
+        sub_LBs = []
+        sub_pathcandidate = []
+        sub_flow_pathid_list = []
+        sub_ops = []
+        sub_oldys = []
+        sub_flows_rates = []
+        sub_all_flow_ids = []
+        sub_link_rates = []
         for i in range(len(subnet_list)):
+            # apply subnetwork traffic
             subnet_list[i].apply_traffic(domain_matrices[i])
             print subnet_list[i].calc_link_utilization()
 
+            critical_list_subs.append(get_all_links(subnet_list[i]))
+            critical_flow_subs.append(get_critical_link_flows(subnet_list[i],
+                                                              critical_list_subs[i]))
+            sub_LBs.append(get_link_capacity(subnet_list[i]))
+            sub_pathcandidate.append(get_path_candidate(subnet_list[i]))
+            sub_flow_pathid_list.append(get_flow_path_id(subnet_list[i]))
+            sub_ops.append(init_op(subnet_list[i], sub_pathcandidate[i],
+                                   sub_flow_pathid_list[i], sub_LBs[i], subgraph_list[i]))
+            sub_oldys.append(get_old_y(subnet_list[i]))
+            sub_flows_rates.append(get_flow_rate(subnet_list[i]))
+            sub_all_flow_ids.append(get_all_flows(subnet_list[i]))
+            sub_link_rates.append(get_link_rate(subnet_list[i]))
+
+
+            sub_ops[i].process(sub_oldys[i], sub_flows_rates[i], sub_link_rates[i], sub_all_flow_ids[i])
+
+            print  subnet_list[i].calc_link_utilization()
 
 
 
 
 
+
+
+
+
+
+
+
+
+
+"""
+    Calculate the SubNetwork objects
+    
+    g: the whole network igraph object
+    groups_list: the list of node groups of subnetwork
+    n: the whole network Net object
+    
+    return: subnet_list: the list of SubNetwork objects
+"""
+def cal_subnets(g, groups_list, n):
+    subnet_list = []
+    subgraph_list = []
+    for group in groups_list:
+        group_vs = g.vs.select(group)
+        sub_g = g.subgraph(group_vs)
+        subgraph_list.append(sub_g)
+
+        # layout = sub_g.layout("kk")
+        # plot(sub_g, layout=layout)
+        subnet = SubNetwork(sub_g, k, m, TB, 1, topo, n)
+        subnet_list.append(subnet)
+    return subnet_list, subgraph_list
+
+"""
+    Get all links' id
+    
+    network: the Net or SubNetwork object
+    
+    return: the list of all links in network
+"""
+def get_all_links(network):
+    all_links = []
+
+    for key, value in network.links_dict.iteritems():
+        all_links.append(key)
+
+    return all_links
+
+
+"""
+    Get link capacity list
+    
+    network: the Net or SubNetwork object
+    
+    return: capacity list
+"""
+def get_link_capacity(network):
+    LB = []
+    for i in range(0, len(network.links_dict)):
+        LB.append(network.links_dict[i].capacity * LB_factor)
+    return LB
+
+
+"""
+    init Op algorithm
+    
+    network: the Net or SubNetwork object
+    
+    return Optimal object
+"""
+def init_op(network, pathcandidate, flow_pathid_list, LB, g):
+    nodes_num, links_num, total_paths_num, flows_num, p_l, p_n = get_params(network, g)
+    op = Optimal(total_paths_num, flows_num, links_num, nodes_num,
+                 p_l, p_n, LB, TB, OL, pathcandidate,
+                 flow_pathid_list, no_loop_para)
+
+    return op
 
 
 

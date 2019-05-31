@@ -841,3 +841,171 @@ def split_matrix(whole_matrix, groups_list, whole_network):
         traffic_list.append(sub_matrix.tolist())
 
     return traffic_list
+
+
+"""
+    get the flows which contains ciritical links
+    n: the Network object
+    return: the flow list qualified.
+"""
+def get_critical_link_flows(n, critical_list):
+    critical_link_flowsid_set = set()
+    for f_k, f_v in n.flows_dict.iteritems():
+        cur_path = n.paths_dict[f_v.cur_path_id]
+        for l_i in cur_path.links:
+            # onece one of the link of the flow is a
+            # critical link add the flow to the set
+            if l_i in critical_list:
+                critical_link_flowsid_set.add(f_k)
+                break
+    return list(critical_link_flowsid_set)
+
+
+"""
+    get all the parameters required for further calculation
+    net: the Net object
+    return: serveral return values with the following sequence:
+        nodes_num, links_num, total_paths_num, flows_num, p_l, p_n
+"""
+def get_params(net, g):
+    nodes_num = len(net.nodes_dict)
+    flows_num = len(net.flows_dict)
+
+    total_paths_num = len(net.paths_dict)
+
+    # generate the p_l matrix
+    links_num = len(net.links_dict)
+
+    # preprocess the final matrix
+    p_l = []
+    for i in range(0, total_paths_num):
+        tmp = []
+        for j in range(0, links_num):
+            tmp.append(0)
+        p_l.append(tmp)
+    # set value to the final matrix
+    for p_k, p_v in net.paths_dict.iteritems():
+        for l_id in p_v.links:
+            p_l[p_k][l_id] = 1
+
+    # generate the p_n matrix
+    nodes_num = len(net.nodes_dict)
+
+    # preprocess the final matrix
+    p_n = []
+    for i in range(0, total_paths_num):
+        tmp = []
+        for j in range(0, nodes_num):
+            tmp.append(0)
+        p_n.append(tmp)
+
+    # set values to the final matrix
+
+    #get the new_id and renumbered id mapping
+    mapping_table = cal_id_mapping(g)
+    for p_k, p_v in net.paths_dict.iteritems():
+        for n_id in p_v.nodes:
+            n_id = mapping_table[int(n_id)]
+            p_n[p_k][n_id] = 1
+
+    return nodes_num, links_num, total_paths_num, flows_num, p_l, p_n
+
+
+"""
+    get path candidate for each flow
+    n: the Network object
+    return: a path candidate matrix which indicates the relationship of flows and paths.
+"""
+def get_path_candidate(n):
+    pathcandidate = []
+    for f_key, flow in n.flows_dict.iteritems():
+        tmppaths = []
+        for j in range(len(n.paths_dict)):
+            if j in flow.path_list:
+                tmppaths.append(1)
+            else:
+                tmppaths.append(0)
+        pathcandidate.append(tmppaths)
+    return pathcandidate
+
+"""
+    get path id list of each flow
+    n: the Network Object
+    return: the flow_path_id list
+"""
+def get_flow_path_id(n):
+    res_list = []
+    for f_id, flow in n.flows_dict.iteritems():
+        res_list.append(flow.path_list)
+    return res_list
+
+
+"""
+    calculate the map of old id and renumbered id
+    
+    g: the igraph object
+    
+    return: the mapping table
+"""
+def cal_id_mapping(g):
+    id_mapping_table = dict()
+
+    vs = VertexSeq(g)
+    for v in vs:
+        id_mapping_table[int(v['id'])] = v.index
+
+    return id_mapping_table
+
+
+"""
+    get the old_y, old_y is the relationship matrix between flows and paths.
+    network: the Net or SubNetwork object
+    g: the igraph object
+
+    return: old_y. note that the id of old y is renumbered.
+"""
+def get_old_y(network):
+
+    oldy_shape = (len(network.flows_dict), len(network.paths_dict))
+    old_y = np.zeros(oldy_shape, dtype=np.int)
+    for flow_k, flow in network.flows_dict.iteritems():
+        old_y[flow.flow_id][flow.cur_path_id] = 1
+    return old_y.tolist()
+
+
+"""
+    get the rate of each flow
+    n: the Net or SubNetwork object
+    return: the flow_rate list
+"""
+def get_flow_rate(network):
+    # initialize flow_rate vector
+    flow_rate = [0 for i in range(len(network.flows_dict))]
+
+    for f_k, f_v in network.flows_dict.iteritems():
+        flow_rate[f_k] = f_v.rate
+    return flow_rate
+
+
+"""
+    get all flow id of a network
+    network: the Net or SubNetwork object
+    return: all flow id list
+"""
+def get_all_flows(network):
+    all_flow_list = [flow_id for flow_id, flow in network.flows_dict.iteritems()]
+    return all_flow_list
+
+
+"""
+    get all link rate of a network
+    network: the Net or SubNetwork object
+    return: the link rate list
+"""
+def get_link_rate(network):
+    # init the link_rate list
+    link_rate_list = [0 for i in range(len(network.links_dict))]
+    for link_id, link in network.links_dict.iteritems():
+        link_rate_list[link_id] = link.rate
+    return link_rate_list
+
