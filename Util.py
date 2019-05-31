@@ -208,32 +208,26 @@ def read_traffic(filename, traffic_factor):
 
     return: paths list
 """
-def find_all_paths2(g, start, end, link_weight_dict, vn = []):
+def find_all_paths2(g, start, end, vn = []):
     vn = vn if type(vn) is list else [vn]
-    #vn = list(set(vn)-set([start,end]))
-    path  = []
+    # vn = list(set(vn)-set([start,end]))
+    path = []
     paths = []
-    pathsandwight = []
     queue = [(start, end, path)]
     while queue:
         start, end, path = queue.pop()
         path = path + [start]
 
         if start not in vn:
-            for node in set(g.neighbors(start,mode='OUT')).difference(path):
+            for node in set(g.neighbors(start, mode='OUT')).difference(path):
                 queue.append((node, end, path))
 
-            if start == end and len(path) > 0: 
-                path_weight = get_path_weight(path,link_weight_dict)             
-                pathsandwight.append((path, path_weight))
+            if start == end and len(path) > 0:
+                paths.append(path)
             else:
                 pass
         else:
             pass
-    
-    pathsandwight.sort(key=lambda tup: tup[1])
-    for p in pathsandwight:
-        paths.append(p[0])
 
     return paths
 
@@ -266,10 +260,25 @@ def find_all_paths_to_file(n, g, link_weight_dict):
             # paths_list = find_all_paths2(g, i_id, j_id, link_weight_dict)
             paths_list = g.get_all_shortest_paths(i_id, j_id)
 
+            # remove duplications
+            paths_list = [tuple(path) for path in paths_list]
+            paths_list = list(set(paths_list))
+            for i in range(len(paths_list)):
+                paths_list[i] = list(paths_list[i])
+
+            # judge if the number of paths in paths list is bigger than 5
+            # filter the duplications
+            if len(paths_list) < 5:
+                backup_paths_list = find_all_paths2(g, i_id, j_id)
+                backup_paths_list =[path for path in backup_paths_list
+                                      if path not in paths_list]
+                if len(backup_paths_list) > 0:
+                    paths_list += backup_paths_list[:(5-len(paths_list))]
+
             # replace the renumbered id to the actual id
             for i in range(len(paths_list)):
                 for j in range(len(paths_list[i])):
-                    renumbered_id = paths_list[i][j]
+                    renumbered_id = int(paths_list[i][j])
                     paths_list[i][j] = vs[renumbered_id]['id']
 
             for p in paths_list:
@@ -797,7 +806,7 @@ def split_matrix(whole_matrix, groups_list, whole_network):
     traffic_list = []
     for group in groups_list:
         matrix_size = len(whole_matrix)
-        sub_matrix = np.zeros((matrix_size, matrix_size), dtype=np.int)
+        sub_matrix = np.zeros((matrix_size, matrix_size), dtype=np.float)
 
         # the source and destination all in group
         for i in group:

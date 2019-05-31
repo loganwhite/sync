@@ -77,11 +77,12 @@ def main():
         flows_rate_whole = get_flow_rate(n)
         all_flow_id_whole = get_all_flows(n)
         link_rate_whole = get_link_rate(n)
-
-        op_whole.process(oldy_whole, flows_rate_whole, link_rate_whole, all_flow_id_whole)
-
+        tpls_whole, new_y_whole = op_whole.process(oldy_whole, flows_rate_whole,
+                                                   link_rate_whole, all_flow_id_whole)
+        n.apply_modification(tpls_whole, oldy_whole, new_y_whole)
 
         print n.calc_link_utilization()
+        print '\n'
 
         critical_list_subs = []
         critical_flow_subs = []
@@ -93,6 +94,8 @@ def main():
         sub_flows_rates = []
         sub_all_flow_ids = []
         sub_link_rates = []
+        sub_tpls = []
+        sub_new_y = []
         for i in range(len(subnet_list)):
             # apply subnetwork traffic
             subnet_list[i].apply_traffic(domain_matrices[i])
@@ -112,9 +115,15 @@ def main():
             sub_link_rates.append(get_link_rate(subnet_list[i]))
 
 
-            sub_ops[i].process(sub_oldys[i], sub_flows_rates[i], sub_link_rates[i], sub_all_flow_ids[i])
+            tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i], sub_flows_rates[i],
+                                                     sub_link_rates[i], sub_all_flow_ids[i])
+            sub_tpls.append(tmp_tpls)
+            sub_new_y.append(tmp_new_y)
+            subnet_list[i].apply_modification(tmp_tpls, sub_oldys[i], tmp_new_y)
+
 
             print  subnet_list[i].calc_link_utilization()
+            print '\n'
 
 
 

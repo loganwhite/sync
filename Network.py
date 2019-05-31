@@ -206,7 +206,7 @@ class Net:
             self.flows_dict[flow_id].cur_path_id = path_id
             # print("result",self.flows_dict[flow_id].src, self.flows_dict[flow_id].dst, self.paths_dict[path_id].nodes)
 
-        self.update_node_flowentry(old_y, tuples)
+        # self.update_node_flowentry(old_y, tuples)
 
     """
         update flowentry useage
