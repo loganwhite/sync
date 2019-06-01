@@ -155,3 +155,4 @@ class InnerFlow(Flow):
     def __init__(self, flow_id, src, dst, rate=0, path_list=[], cur_path_id=0, inst_nodes=set(), distance=0, is_subflow=False):
         Flow.__init__(self, flow_id, src, dst, rate, path_list,cur_path_id, inst_nodes, distance)
         self.is_subflow = is_subflow
+        self.whole_flow = None

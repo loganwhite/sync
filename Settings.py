@@ -31,3 +31,6 @@ a = 500
 ratio = 0.9
 
 topo = "AttMpls"
+
+# rerouting threshold
+threshold = 0.5

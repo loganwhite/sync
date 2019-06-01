@@ -99,7 +99,7 @@ def main():
         for i in range(len(subnet_list)):
             # apply subnetwork traffic
             subnet_list[i].apply_traffic(domain_matrices[i])
-            print subnet_list[i].calc_link_utilization()
+            prev_util = subnet_list[i].calc_link_utilization()
 
             critical_list_subs.append(get_all_links(subnet_list[i]))
             critical_flow_subs.append(get_critical_link_flows(subnet_list[i],
@@ -114,16 +114,30 @@ def main():
             sub_all_flow_ids.append(get_all_flows(subnet_list[i]))
             sub_link_rates.append(get_link_rate(subnet_list[i]))
 
+            if prev_util > threshold:
+                tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i], sub_flows_rates[i],
+                                                         sub_link_rates[i], sub_all_flow_ids[i])
+                sub_tpls.append(tmp_tpls)
+                sub_new_y.append(tmp_new_y)
+                subnet_list[i].apply_modification(tmp_tpls, sub_oldys[i], tmp_new_y)
+                tmp_util = subnet_list[i].calc_link_utilization()
+                if tmp_util > threshold:
+                    candidate_nodes = subnet_list[i].get_candidate_nodes(groups_list)
+                    for flow_id, candidate_dst in candidate_nodes.iteritems():
+                        if subnet_list[i].inner_flow_dict[flow_id].is_subflow:
+                            for node in candidate_dst:
+                                traffic_tranfer(subnet_list[i], flow_id, node)
+                                tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i], sub_flows_rates[i],
+                                                                         sub_link_rates[i], sub_all_flow_ids[i])
+                                sub_tpls.append(tmp_tpls)
+                                sub_new_y.append(tmp_new_y)
+                                subnet_list[i].apply_modification(tmp_tpls, sub_oldys[i], tmp_new_y)
+                                tmp_util = subnet_list[i].calc_link_utilization()
+                                if tmp_util < threshold:
+                                    break
 
-            tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i], sub_flows_rates[i],
-                                                     sub_link_rates[i], sub_all_flow_ids[i])
-            sub_tpls.append(tmp_tpls)
-            sub_new_y.append(tmp_new_y)
-            subnet_list[i].apply_modification(tmp_tpls, sub_oldys[i], tmp_new_y)
-
-
-            print  subnet_list[i].calc_link_utilization()
-            print '\n'
+                    print subnet_list[i].calc_link_utilization()
+                    print '\n'
 
 
 
@@ -205,6 +219,35 @@ def init_op(network, pathcandidate, flow_pathid_list, LB, g):
                  flow_pathid_list, no_loop_para)
 
     return op
+
+
+"""
+    remove flow A traffic to flow B
+    
+    flow_id: the id of flow A
+    new_dst: the dst of flow B
+    network: the SubNetwork object    
+"""
+def traffic_tranfer(network, flow_id, new_dst):
+    flow = network.flows_dict[flow_id]
+    rate = flow.rate
+    flow.rate = 0
+    network.inner_flow_dict[flow_id].rate = 0
+    path = network.paths_dict[flow.cur_path_id]
+    for link_id in path.links:
+        network.links_dict[link_id].rate -= rate
+
+    # apply traffic on new flow
+    for flow_id, tmp_flow in network.inner_flow_dict.iteritems():
+        if tmp_flow.src == flow.src and tmp_flow.dst == new_dst:
+            network.inner_flow_dict[flow_id].rate += rate
+            network.flows_dict[flow_id].rate += rate
+            path = network.paths_dict[tmp_flow.cur_path_id]
+            for link_id in path.links:
+                network.links_dict[link_id].rate += rate
+            break
+
+
 
 
 

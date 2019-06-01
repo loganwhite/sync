@@ -47,6 +47,7 @@ class SubNetwork(Net):
 
                 if is_sublist(subflow_path_list, whole_path_list):
                     self.inner_flow_dict[i].is_subflow = True
+                    self.inner_flow_dict[i].whole_flow = whole_flow
                     break
 
     """
@@ -78,6 +79,47 @@ class SubNetwork(Net):
             linkutil_list.append(float(l_v.rate) / float(l_v.capacity))
 
         return max(linkutil_list)
+
+
+    """
+        get the candidate nodes that connects the following domain.
+        
+        return: the candidate nodes list
+    """
+    def get_candidate_nodes(self, groups_list):
+        candidate_nodes = dict()
+        group_node_list = [node.node_id
+                           for key, node in self.nodes_dict.iteritems()]
+
+        for flow_id, flow in self.inner_flow_dict.iteritems():
+            if flow.is_subflow:
+                # get the next node
+                next_node = -1
+                for path_id in flow.path_list:
+                    path = self.whole_network.paths_dict[path_id]
+                    for i in range(len(path.nodes) - 1):
+                        if path.nodes[i] == flow.dst and next_node not in group_node_list:
+                            next_node = path.nodes[i+1]
+                            break
+                # get the canndidate nodes
+                if next_node != -1:
+                    # locate the node residents
+                    selected_group = []
+                    for group in groups_list:
+                        if next_node in group:
+                            selected_group = group
+                            break
+
+                    tmp_nodes = []
+                    for link_id, link in self.whole_network.links_dict.iteritems():
+                        if link.src in group_node_list and link.dst in selected_group:
+                            tmp_nodes.append(link.src)
+                    candidate_nodes[flow_id] = tmp_nodes
+
+        return candidate_nodes
+
+
+
 
 
 
