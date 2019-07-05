@@ -1,3 +1,4 @@
+import random
 from math import radians
 
 from igraph import *
@@ -247,9 +248,10 @@ def get_path_weight(node_list,link_weight_dict):
     n: the Net object
     g: the igraph object, used to pass to the find_all_path2
 """
-def find_all_paths_to_file(n, g, link_weight_dict):
+def find_all_paths_to_file(n, g, filename):
     vs = VertexSeq(g)
     path_id = 0
+    f = open(filename, 'w')
 
     for i in vs:
         # i_id = int(i["id"]) # formal expresion
@@ -290,6 +292,11 @@ def find_all_paths_to_file(n, g, link_weight_dict):
                 n.paths_dict[path_id] = Path(path_id, vs[i_id]['id'], vs[j_id]['id'], p, link_list)
                 path_id += 1
 
+
+                f.write("%s-%s-%s-\n" % (vs[i_id]['id'], vs[j_id]['id'], paths_list))
+    f.close()
+
+
     # with open('path.log.'+ n.topo,'w') as f:
     #
     #     for i in vs:
@@ -318,7 +325,7 @@ def find_all_paths_to_file(n, g, link_weight_dict):
 def get_all_paths_from_file(n):
 
     res_dict = dict()
-    with open('path.log.' + n.topo, 'r') as f:
+    with open(n.name, 'r') as f:
         for line in f:
             str_list = line.split('-')
             str_list.remove('\n')
@@ -336,7 +343,7 @@ def get_all_paths_from_file(n):
     n: the Net object
     g: the igraph object, used to pass to the find_all_path2
 """
-def find_all_paths(n, g, link_weight_dict):
+def find_all_paths(n, g):
     all_path_dict = get_all_paths_from_file(n)
     vs = VertexSeq(g)
     path_id = 0
@@ -1018,3 +1025,16 @@ def get_link_rate(network):
         link_rate_list[link_id] = link.rate
     return link_rate_list
 
+
+"""
+    generate random traffic matrix
+    matrix_shape:
+    
+    return: traffic matrix
+"""
+def generate_traffic_matrix(shape, link_capacity, ratio):
+    traffic_matrix = np.zeros(shape, np.float)
+    for i in shape[0]:
+        for j in shape[1]:
+            traffic_matrix[i][j] = random.uniform(0, link_capacity * ratio)
+    return traffic_matrix

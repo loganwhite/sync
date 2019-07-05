@@ -13,9 +13,9 @@ class SubNetwork(Net):
          group_num: the number of groups
      """
 
-    def __init__(self, g, k, m, TB, group_num, topo, whole_network):
+    def __init__(self, g, k, m, TB, group_num, topo, whole_network, name):
 
-        Net.__init__(self, g, k, m, TB, group_num, topo)
+        Net.__init__(self, g, k, m, TB, group_num, topo, name)
         self.inner_flow_dict = dict()
         self.whole_network = whole_network
 

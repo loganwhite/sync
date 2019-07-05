@@ -30,7 +30,8 @@ class Net:
         TB: the flow table capacity of a switch
         group_num: the number of groups
     """
-    def __init__(self, g, k, m, TB, group_num, topo):
+    def __init__(self, g, k, m, TB, group_num, topo, name):
+        self.name = self.__class__.__name__ + topo + name
         self.k = k
         self.m = m
         self.nodes_dict = dict()
@@ -90,13 +91,16 @@ class Net:
         
         
         # print("in network number of links", len(self.links_dict))
-        
+        #
         # get all the paths from g and store paths into the paths_dict
         # if path.exists('paths.log'):
         #     find_all_paths(self, g, self.link_weight_dict)
         # else:
         #     find_all_paths_to_file(self, g, self.link_weight_dict)
-        find_all_paths_to_file(self, g, self.link_weight_dict)
+        if path.exists(self.name):
+            find_all_paths(self, g)
+        else:
+            find_all_paths_to_file(self, g, self.name)
 
         # generate all the flows
         gen_flow_all(self, k, m)

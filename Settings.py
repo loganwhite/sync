@@ -34,3 +34,5 @@ topo = "AttMpls"
 
 # rerouting threshold
 threshold = 0.5
+
+link_capacity = 9920000

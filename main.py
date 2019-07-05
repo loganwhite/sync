@@ -1,3 +1,4 @@
+from Placement import Placement
 from Util import *
 from Entity import *
 
@@ -52,7 +53,15 @@ def main():
     # layout = g.layout("kk")
     # plot(g, layout=layout)
 
-    n = Net(g, k, m, TB, group_num, topo)
+    n = Net(g, k, m, TB, group_num, topo, "whole")
+
+    # control_loc = n.controll_location(g, group_num, a)
+    # place = Placement(n.pair_distance(), len(n.flows_dict), len(n.nodes_dict), control_loc)
+    # place.process(n.switch_flow_matrix(), [i for i in range(len(n.nodes_dict))],
+    #               [i for i in range(len(n.nodes_dict))], [a for i in range(len(n.nodes_dict))], ratio,
+    #               len(n.flows_dict))
+    # place_z = round_matrix(place.z)
+
     group_num = len(n.nodes_dict) / 5
 
 
@@ -63,6 +72,10 @@ def main():
 
 
     for matrix in matrices_list[:1]:
+        # used for att network
+        node_num = len(n.nodes_dict)
+        matrix = generate_traffic_matrix((node_num, node_num), link_capacity, 0.4)
+
         domain_matrices = split_matrix(matrix, groups_list, n)
         n.apply_traffic(matrix)
         print n.calc_link_utilization()
@@ -113,31 +126,38 @@ def main():
             sub_flows_rates.append(get_flow_rate(subnet_list[i]))
             sub_all_flow_ids.append(get_all_flows(subnet_list[i]))
             sub_link_rates.append(get_link_rate(subnet_list[i]))
+            tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i], sub_flows_rates[i],
+                                                    sub_link_rates[i], sub_all_flow_ids[i])
+            sub_tpls.append(tmp_tpls)
+            sub_new_y.append(tmp_new_y)
+            subnet_list[i].apply_modification(tmp_tpls, sub_oldys[i], tmp_new_y)
+            tmp_util = subnet_list[i].calc_link_utilization()
+            print tmp_util
 
-            if prev_util > threshold:
-                tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i], sub_flows_rates[i],
-                                                         sub_link_rates[i], sub_all_flow_ids[i])
-                sub_tpls.append(tmp_tpls)
-                sub_new_y.append(tmp_new_y)
-                subnet_list[i].apply_modification(tmp_tpls, sub_oldys[i], tmp_new_y)
-                tmp_util = subnet_list[i].calc_link_utilization()
-                if tmp_util > threshold:
-                    candidate_nodes = subnet_list[i].get_candidate_nodes(groups_list)
-                    for flow_id, candidate_dst in candidate_nodes.iteritems():
-                        if subnet_list[i].inner_flow_dict[flow_id].is_subflow:
-                            for node in candidate_dst:
-                                traffic_tranfer(subnet_list[i], flow_id, node)
-                                tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i], sub_flows_rates[i],
-                                                                         sub_link_rates[i], sub_all_flow_ids[i])
-                                sub_tpls.append(tmp_tpls)
-                                sub_new_y.append(tmp_new_y)
-                                subnet_list[i].apply_modification(tmp_tpls, sub_oldys[i], tmp_new_y)
-                                tmp_util = subnet_list[i].calc_link_utilization()
-                                if tmp_util < threshold:
-                                    break
-
-                    print subnet_list[i].calc_link_utilization()
-                    print '\n'
+            # if prev_util > threshold:
+            #     tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i], sub_flows_rates[i],
+            #                                              sub_link_rates[i], sub_all_flow_ids[i])
+            #     sub_tpls.append(tmp_tpls)
+            #     sub_new_y.append(tmp_new_y)
+            #     subnet_list[i].apply_modification(tmp_tpls, sub_oldys[i], tmp_new_y)
+            #     tmp_util = subnet_list[i].calc_link_utilization()
+            #     if tmp_util > threshold:
+            #         candidate_nodes = subnet_list[i].get_candidate_nodes(groups_list)
+            #         for flow_id, candidate_dst in candidate_nodes.iteritems():
+            #             if subnet_list[i].inner_flow_dict[flow_id].is_subflow:
+            #                 for node in candidate_dst:
+            #                     traffic_tranfer(subnet_list[i], flow_id, node)
+            #                     tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i], sub_flows_rates[i],
+            #                                                              sub_link_rates[i], sub_all_flow_ids[i])
+            #                     sub_tpls.append(tmp_tpls)
+            #                     sub_new_y.append(tmp_new_y)
+            #                     subnet_list[i].apply_modification(tmp_tpls, sub_oldys[i], tmp_new_y)
+            #                     tmp_util = subnet_list[i].calc_link_utilization()
+            #                     if tmp_util < threshold:
+            #                         break
+            #
+            #         print subnet_list[i].calc_link_utilization()
+            #         print '\n'
 
 
 
@@ -171,7 +191,7 @@ def cal_subnets(g, groups_list, n):
 
         # layout = sub_g.layout("kk")
         # plot(sub_g, layout=layout)
-        subnet = SubNetwork(sub_g, k, m, TB, 1, topo, n)
+        subnet = SubNetwork(sub_g, k, m, TB, 1, topo, n, ''.join(str(e) for e in group))
         subnet_list.append(subnet)
     return subnet_list, subgraph_list
 
