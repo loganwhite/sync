@@ -103,7 +103,7 @@ class SubNetwork(Net):
                             break
                 # get the canndidate nodes
                 if next_node != -1:
-                    # locate the node residents
+                    # get the group of the next node
                     selected_group = []
                     for group in groups_list:
                         if next_node in group:

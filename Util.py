@@ -259,6 +259,8 @@ def find_all_paths_to_file(n, g, filename):
         for j in vs:
             # j_id = int(j["id"]) # formal expression
             j_id = j.index
+            if i_id == j_id:
+                continue
             # paths_list = find_all_paths2(g, i_id, j_id, link_weight_dict)
             paths_list = g.get_all_shortest_paths(i_id, j_id)
 
@@ -325,12 +327,15 @@ def find_all_paths_to_file(n, g, filename):
 def get_all_paths_from_file(n):
 
     res_dict = dict()
+    print n.name
     with open(n.name, 'r') as f:
         for line in f:
             str_list = line.split('-')
             str_list.remove('\n')
             paths_list = ast.literal_eval(str_list[2])
-            res_dict[(int(str_list[0]), int(str_list[1]))] = paths_list
+            # using int(float(x)) to avoid the string is a floating number
+            # and cannot be convert to int directly
+            res_dict[(int(float(str_list[0])), int(float(str_list[1])))] = paths_list
 
         f.close()
 
@@ -353,6 +358,9 @@ def find_all_paths(n, g):
         for j in vs:
             j_id = int(j["id"])
             # paths_list = find_all_paths2(g, i_id, j_id, link_weight_dict)
+            if (i_id, j_id) not in all_path_dict:
+                continue
+
             paths_list = all_path_dict[(i_id, j_id)]
             for p in paths_list:
                 # get the links from head to tail
@@ -1034,7 +1042,7 @@ def get_link_rate(network):
 """
 def generate_traffic_matrix(shape, link_capacity, ratio):
     traffic_matrix = np.zeros(shape, np.float)
-    for i in shape[0]:
-        for j in shape[1]:
+    for i in range(shape[0]):
+        for j in range(shape[1]):
             traffic_matrix[i][j] = random.uniform(0, link_capacity * ratio)
     return traffic_matrix

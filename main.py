@@ -126,13 +126,65 @@ def main():
             sub_flows_rates.append(get_flow_rate(subnet_list[i]))
             sub_all_flow_ids.append(get_all_flows(subnet_list[i]))
             sub_link_rates.append(get_link_rate(subnet_list[i]))
+
+            if prev_util <= threshold:
+                continue
+
             tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i], sub_flows_rates[i],
                                                     sub_link_rates[i], sub_all_flow_ids[i])
             sub_tpls.append(tmp_tpls)
             sub_new_y.append(tmp_new_y)
             subnet_list[i].apply_modification(tmp_tpls, sub_oldys[i], tmp_new_y)
             tmp_util = subnet_list[i].calc_link_utilization()
-            print tmp_util
+            print "//////////////////////////////////////"
+            print("Before select new node %f\n" % tmp_util)
+
+
+            # if exceeds threshold
+            if prev_util <= threshold:
+                continue
+
+            # adjust with current subnet src and dst
+            tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i],
+                                                     sub_flows_rates[i],
+                                                     sub_link_rates[i],
+                                                     sub_all_flow_ids[i])
+
+            sub_tpls.append(tmp_tpls)
+            sub_new_y.append(tmp_new_y)
+            subnet_list[i].apply_modification(tmp_tpls, sub_oldys[i], tmp_new_y)
+
+            new_tmp_util = subnet_list[i].calc_link_utilization()
+
+            # change the dst until satisfy the link util requirement
+            if new_tmp_util < threshold:
+                continue
+
+            candidate_nodes = subnet_list[i].get_candidate_nodes(groups_list)
+            for flow_id, candidate_dst in candidate_nodes.iteritems():
+                if not subnet_list[i].inner_flow_dict[flow_id].is_subflow:
+                    continue
+
+                # test flag
+                flag = 0
+                for node in candidate_dst:
+                    traffic_tranfer(subnet_list[i], flow_id, node)
+                    tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i], sub_flows_rates[i],
+                                                             sub_link_rates[i], sub_all_flow_ids[i])
+                    sub_tpls.append(tmp_tpls)
+                    sub_new_y.append(tmp_new_y)
+                    subnet_list[i].apply_modification(tmp_tpls, sub_oldys[i], tmp_new_y)
+                    new_tmp_util = subnet_list[i].calc_link_utilization()
+
+                    if new_tmp_util < threshold:
+                        flag = 1
+                        break
+
+                if flag == 1:
+                    break
+            print("new util: %f\n" % new_tmp_util)
+
+
 
             # if prev_util > threshold:
             #     tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i], sub_flows_rates[i],

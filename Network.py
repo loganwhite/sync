@@ -79,7 +79,10 @@ class Net:
                 # s = (self.nodes_dict[e[i % 2]].longi - self.nodes_dict[e[(i+1) % 2]].longi)**2 + (self.nodes_dict[e[i % 2]].lati - self.nodes_dict[e[(i + 1) % 2]].lati) ** 2
                 # dist = math.sqrt( s )
 
-                dist = haversine(self.nodes_dict[e[(i+1) % 2]].longi, self.nodes_dict[e[(i+1) % 2]].lati, self.nodes_dict[e[i % 2]].longi, self.nodes_dict[e[i % 2]].lati)
+                dist = haversine(self.nodes_dict[e[(i+1) % 2]].longi,
+                                 self.nodes_dict[e[(i+1) % 2]].lati,
+                                 self.nodes_dict[e[i % 2]].longi,
+                                 self.nodes_dict[e[i % 2]].lati)
 
                 link = Link(link_id, e[i % 2], e[(i+1) % 2], dist=dist)
                 self.linkID_dict[(e[i % 2], e[(i+1) % 2])] = link_id
