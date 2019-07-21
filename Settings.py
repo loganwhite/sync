@@ -5,7 +5,7 @@ k = 20
 m = 10
 
 # increase factor for traffic
-traffic_factor = 10
+traffic_factor = 1
 # the threshold ratio for starting load balancing algorithm
 LB_factor = 1
 

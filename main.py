@@ -90,12 +90,14 @@ def main():
         flows_rate_whole = get_flow_rate(n)
         all_flow_id_whole = get_all_flows(n)
         link_rate_whole = get_link_rate(n)
-        tpls_whole, new_y_whole = op_whole.process(oldy_whole, flows_rate_whole,
-                                                   link_rate_whole, all_flow_id_whole)
-        n.apply_modification(tpls_whole, oldy_whole, new_y_whole)
 
-        print n.calc_link_utilization()
-        print '\n'
+        # # whole network optimization
+        # tpls_whole, new_y_whole = op_whole.process(oldy_whole, flows_rate_whole,
+        #                                            link_rate_whole, all_flow_id_whole)
+        # n.apply_modification(tpls_whole, oldy_whole, new_y_whole)
+        #
+        # print n.calc_link_utilization()
+        # print '\n'
 
         critical_list_subs = []
         critical_flow_subs = []

@@ -92,29 +92,36 @@ class SubNetwork(Net):
                            for key, node in self.nodes_dict.iteritems()]
 
         for flow_id, flow in self.inner_flow_dict.iteritems():
-            if flow.is_subflow:
-                # get the next node
-                next_node = -1
-                for path_id in flow.path_list:
-                    path = self.whole_network.paths_dict[path_id]
-                    for i in range(len(path.nodes) - 1):
-                        if path.nodes[i] == flow.dst and next_node not in group_node_list:
-                            next_node = path.nodes[i+1]
-                            break
-                # get the canndidate nodes
-                if next_node != -1:
-                    # get the group of the next node
-                    selected_group = []
-                    for group in groups_list:
-                        if next_node in group:
-                            selected_group = group
-                            break
+            if not flow.is_subflow:
+                continue
 
-                    tmp_nodes = []
-                    for link_id, link in self.whole_network.links_dict.iteritems():
-                        if link.src in group_node_list and link.dst in selected_group:
-                            tmp_nodes.append(link.src)
-                    candidate_nodes[flow_id] = tmp_nodes
+            # get the next node
+            path_id = flow.cur_path_id
+            cur_path = self.paths_dict[path_id]
+
+            #original path means that the path in the whole network
+            original_path_id = flow.whole_flow.cur_path_id
+            original_path = self.whole_network.paths_dict[original_path_id]
+            last_node = cur_path.nodes[-1]
+
+            # get next node
+            if last_node != original_path.nodes[-1] and last_node in original_path.nodes:
+                next_node_index = original_path.nodes.index(last_node) + 1
+                next_node = original_path.nodes[next_node_index]
+
+                # get the group of the next node (next group)
+                next_group = []
+                for group in groups_list:
+                    if next_node in group:
+                        next_group = group
+                        break
+
+                # get all the edge nodes of getting to the next group
+                tmp_nodes = set()
+                for link_id, link in self.whole_network.links_dict.iteritems():
+                    if link.src in group_node_list and link.dst in next_group:
+                        tmp_nodes.add(link.src)
+                candidate_nodes[flow_id] = list(tmp_nodes)
 
         return candidate_nodes
 

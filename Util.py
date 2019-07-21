@@ -1045,4 +1045,5 @@ def generate_traffic_matrix(shape, link_capacity, ratio):
     for i in range(shape[0]):
         for j in range(shape[1]):
             traffic_matrix[i][j] = random.uniform(0, link_capacity * ratio)
+            print traffic_matrix[i][j]
     return traffic_matrix
