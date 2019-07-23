@@ -84,7 +84,7 @@ class SubNetwork(Net):
     """
         get the candidate nodes that connects the following domain.
         
-        return: the candidate nodes list
+        return: the candidate nodes list of all subflows
     """
     def get_candidate_nodes(self, groups_list):
         candidate_nodes = dict()
