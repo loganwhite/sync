@@ -13,6 +13,8 @@ import getopt
 
 from Settings import *      # global variables
 
+from test import *          # test functions
+
 
 
 
@@ -53,7 +55,7 @@ def main():
     # layout = g.layout("kk")
     # plot(g, layout=layout)
 
-    n = Net(g, k, m, TB, group_num, topo, "whole")
+    n = Net(g, k, m, TfenB, group_num, topo, "whole")
 
     # control_loc = n.controll_location(g, group_num, a)
     # place = Placement(n.pair_distance(), len(n.flows_dict), len(n.nodes_dict), control_loc)
@@ -86,7 +88,7 @@ def main():
         LB = get_link_capacity(n)
         pathcandidate = get_path_candidate(n)
         flow_pathid_list = get_flow_path_id(n)
-        op_whole = init_op(n, pathcandidate, flow_pathid_list, LB, g)
+        # op_whole = init_op(n, pathcandidate, flow_pathid_list, LB, g)
         oldy_whole = get_old_y(n)
         flows_rate_whole = get_flow_rate(n)
         all_flow_id_whole = get_all_flows(n)
@@ -134,6 +136,10 @@ def main():
             if prev_util <= threshold:
                 print("subnetwork %d already satisfied the link util criteria\n" % i)
                 continue
+            print("showing util before op: %f" % prev_util)
+
+            print("start showing link util before")
+            test_print_all_link_above_threshold(subnet_list[i], threshold)
 
             tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i], sub_flows_rates[i],
                                                     sub_link_rates[i], critical_flow_subs[i])
@@ -146,6 +152,9 @@ def main():
             sub_new_y.append(tmp_new_y)
             subnet_list[i].apply_modification(tmp_tpls, sub_oldys[i], tmp_new_y)
             tmp_util = subnet_list[i].calc_link_utilization()
+            print("start showing link util after")
+            test_print_all_link_above_threshold(subnet_list[i], threshold)
+
             print "//////////////////////////////////////"
             print("Before select new node %f\n" % tmp_util)
 
@@ -300,7 +309,7 @@ def get_all_links(network):
 def get_critical_link(network, threshold):
     critical_link = []
     for key, value in network.links_dict.iteritems():
-        if value.rate > threshold:
+        if value.rate > (threshold * value.capacity):
             critical_link.append(key)
 
     return critical_link

@@ -1046,3 +1046,31 @@ def generate_traffic_matrix(shape, link_capacity, ratio):
         for j in range(shape[1]):
             traffic_matrix[i][j] = random.uniform(0, link_capacity * ratio)
     return traffic_matrix
+
+
+""""
+    save generated traffic
+    filename: file name of the traffic file
+    matrix_list: traffic matrix list
+"""
+def save_gen_traffic(filename, matrix_list):
+    with open(filename, 'w') as f:
+        for i in range(len(matrix_list)):
+            flatten_matrix = np.asarray(matrix_list[i]).ravel()
+            for j in flatten_matrix:
+                f.write('%d ' % j)
+            f.write('\n')
+
+"""
+    read genenerated traffic from file
+    filename: file name of the traffic matrix
+    
+    return: the traffic matrices list
+"""
+# def read_gen_traffic(filename):
+#     traffic_list = []
+#     with open(filename, 'r') as f:
+#         for line in f:
+#             str_list = line.split(' ')
+#             tmp = []
+#
