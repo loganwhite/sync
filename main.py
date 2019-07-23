@@ -55,7 +55,7 @@ def main():
     # layout = g.layout("kk")
     # plot(g, layout=layout)
 
-    n = Net(g, k, m, TfenB, group_num, topo, "whole")
+    n = Net(g, k, m, TB, group_num, topo, "whole")
 
     # control_loc = n.controll_location(g, group_num, a)
     # place = Placement(n.pair_distance(), len(n.flows_dict), len(n.nodes_dict), control_loc)
