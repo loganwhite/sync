@@ -227,7 +227,7 @@ class Placement(Optimal):
 
             model.addConstr((quicksum(y[j]
                                       # for j in self.available_controllers) <= len(self.available_controllers)/6),
-                                      for j in self.available_controllers) == 6),
+                                      for j in self.available_controllers) == 4),
                             name="controller number")
 
             # Set objective

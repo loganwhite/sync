@@ -57,18 +57,22 @@ def main():
 
     n = Net(g, k, m, TB, group_num, topo, "whole")
 
-    # control_loc = n.controll_location(g, group_num, a)
-    # place = Placement(n.pair_distance(), len(n.flows_dict), len(n.nodes_dict), control_loc)
-    # place.process(n.switch_flow_matrix(), [i for i in range(len(n.nodes_dict))],
-    #               [i for i in range(len(n.nodes_dict))], [a for i in range(len(n.nodes_dict))], ratio,
-    #               len(n.flows_dict))
-    # place_z = round_matrix(place.z)
+    control_loc = n.controll_location(g, group_num, a)
+    place = Placement(n.pair_distance(), len(n.flows_dict), len(n.nodes_dict), control_loc)
+    place_nodes = [i for i in range(len(n.nodes_dict))]
+    place_ability = [a for i in range(len(n.nodes_dict))]
+    place.process(n.switch_flow_matrix(), place_nodes,
+                  place_nodes, place_ability, ratio,
+                  len(n.flows_dict))
+    place_z = round_matrix(place.z)
 
     group_num = len(n.nodes_dict) / 5
 
 
     # calculate the groups
-    groups_list = cal_cluster_group(cal_distance_matrix(n), group_num, a, n)
+    # groups_list = cal_cluster_group(cal_distance_matrix(n), group_num, a, n)
+    groups_list = get_group_list_from_switch_contro(place_z)
+    groups_list = adjust_groups(groups_list, n)
     subnet_list, subgraph_list = cal_subnets(g, groups_list, n)
 
 
@@ -76,7 +80,7 @@ def main():
     for matrix in matrices_list[:1]:
         # used for att network
         node_num = len(n.nodes_dict)
-        matrix = generate_traffic_matrix((node_num, node_num), link_capacity, 0.04)
+        matrix = generate_traffic_matrix((node_num, node_num), link_capacity, traffic_gen_ratio)
 
         domain_matrices = split_matrix(matrix, groups_list, n)
         n.apply_traffic(matrix)
@@ -144,19 +148,18 @@ def main():
             tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i], sub_flows_rates[i],
                                                     sub_link_rates[i], critical_flow_subs[i])
 
-            print tmp_tpls
-            for flow_id, flow in subnet_list[i].inner_flow_dict.iteritems():
-                print("%d\t%d\n" %(flow_id, flow.cur_path_id))
+            # for flow_id, flow in subnet_list[i].inner_flow_dict.iteritems():
+            #     print("%d\t%d\n" %(flow_id, flow.cur_path_id))
 
             sub_tpls.append(tmp_tpls)
             sub_new_y.append(tmp_new_y)
             subnet_list[i].apply_modification(tmp_tpls, sub_oldys[i], tmp_new_y)
             tmp_util = subnet_list[i].calc_link_utilization()
-            print("start showing link util after")
-            test_print_all_link_above_threshold(subnet_list[i], threshold)
+            # print("start showing link util after")
+            # test_print_all_link_above_threshold(subnet_list[i], threshold)
 
             print "//////////////////////////////////////"
-            print("Before select new node %f\n" % tmp_util)
+            print("after 1st op and Before select new node %f\n" % tmp_util)
 
 
             # if exceeds threshold
@@ -371,6 +374,64 @@ def traffic_tranfer(network, flow_id, new_dst):
     path = network.paths_dict[network.inner_flow_dict[new_flow_id].cur_path_id]
     for link_id in path.links:
         network.links_dict[link_id].rate += rate
+
+
+
+def get_group_list_from_switch_contro(switch_contro):
+    """
+    get group list from switch controller relationship
+    :param switch_contro: the switch controller relationship matrix
+    :return: group list
+    """
+    contro_switch = matrix_transpose(switch_contro)
+
+    group_list = []
+    for item in contro_switch:
+        if sum(item) != 0:
+            tmp = []
+            for j in range(len(item)):
+                if item[j] == 1:
+                    tmp.append(j)
+            group_list.append(tmp)
+
+    return group_list
+
+def adjust_groups(groups_list, whole_network):
+    """
+    adjust the groups and make them connected by nodes, not by edge
+    which means that the cut node is in either of the groups connected.
+    :param groups_list: the node id list of the separated groups
+    :param whole_network:
+    :return: a new groups_list
+    """
+    num_node = len(whole_network.nodes_dict)
+    visited = np.zeros((num_node, num_node), dtype=np.int)
+
+    new_grps_list = []
+
+    for i in range(len(groups_list)):
+        # find connecting edge between anyother groups
+        cur_grp = groups_list[i]
+        new_grp = deepcopy(cur_grp)   # make a deepcopy in case of it is a reference
+        for j in range(len(groups_list)):
+            if i == j:
+                continue
+            cmp_grp = groups_list[j]
+
+            # loop the elements in the current group
+            for cur_elem in cur_grp:
+                for cmp_elem in cmp_grp:
+                    if (cur_elem, cmp_elem) in whole_network.linkID_dict and\
+                            not visited[cur_elem][cmp_elem] and not visited[cmp_elem, cur_elem]:
+                        # if the elem has already been taken
+                        if cmp_elem not in new_grp:
+                            new_grp.append(cmp_elem)
+                        # tag the link has been processed
+                        visited[cur_elem][cmp_elem] = visited[cmp_elem][cur_elem] = 1
+
+        new_grps_list.append(new_grp)
+    return new_grps_list
+
 
 
 

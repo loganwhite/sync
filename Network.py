@@ -345,6 +345,7 @@ class Net:
             tmp = []
             for j in range(len(self.nodes_dict)):
                 if (i, j) not in self.flowID_dict:
+                    tmp.append(0)
                     continue
                 flow_id = self.flowID_dict[(i, j)]
                 flow = self.flows_dict[flow_id]
@@ -419,7 +420,6 @@ class Net:
         # groups_list = group_vertics(g, num)
 
         groups_list = cal_cluster_group(cal_distance_matrix(self), num, ability, self)
-        print groups_list
         self.group_list = groups_list
 
         location_node_id = find_central_vertex_groups(g, groups_list)

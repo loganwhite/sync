@@ -62,17 +62,18 @@ class SubNetwork(Net):
                                    for key, node in self.nodes_dict.iteritems()]
 
         linkutil_list = []
-        # add the connecting links' utilization
-        for node in group_node_list:
-            for key, link in self.whole_network.links_dict.iteritems():
-                # find the links that connect to another domain
-                # this means that the src node is in the domain
-                # and the dst node is not in the domain
-                if link.src != node:
-                    continue
-                if link.dst in group_node_list:
-                    continue
-                linkutil_list.append(link.rate / float(link.capacity))
+        # # add the connecting links' utilization, if splitting
+        # # groups using the cutting edage
+        # for node in group_node_list:
+        #     for key, link in self.whole_network.links_dict.iteritems():
+        #         # find the links that connect to another domain
+        #         # this means that the src node is in the domain
+        #         # and the dst node is not in the domain
+        #         if link.src != node:
+        #             continue
+        #         if link.dst in group_node_list:
+        #             continue
+        #         linkutil_list.append(link.rate / float(link.capacity))
 
         # add the subnetwork links' utilization
         for l_k, l_v in self.links_dict.iteritems():
