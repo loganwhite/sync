@@ -447,6 +447,23 @@ class Net:
         return sum(switch_flow[switch_id])
 
 
+    def get_flow_link_utilization(self, flow_id):
+        """
+        get flow link utilization of flow_id. Flow link utilization is the
+        maximum link utilization of current path links.
+        :param flow_id: flow ID
+        :return: flow link utilization
+        """
+        flow = self.flows_dict[flow_id]
+        path = self.paths_dict[flow.cur_path_id]
+
+        max_util = 0
+        for l_id in path.links:
+            tmp_util = self.links_dict[l_id].rate / float(self.links_dict[l_id].capacity)
+            if tmp_util > max_util:
+                max_util  = tmp_util
+        return max_util
+
         
 
             

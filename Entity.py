@@ -96,9 +96,6 @@ class Flow:
         self.min_dist = distance
 
 
-
-
-
     """
         Determine if the flow is feasible
         path_dict: the dictionary of all path with path_id as its key

@@ -997,6 +997,21 @@ def get_old_y(network):
     return old_y.tolist()
 
 
+def get_newOp_oldy(network):
+    """
+        get the old_y, old_y is the relationship matrix between flows and paths.
+        network: the Net or SubNetwork object
+        g: the igraph object
+
+        return: old_y. note that the id of old y is renumbered.
+    """
+    oldy_shape = (len(network.flows_dict), len(network.flows_dict), len(network.paths_dict))
+    old_y = np.zeros(oldy_shape, dtype=np.int)
+    for flow_k, flow in network.flows_dict.iteritems():
+        old_y[flow.flow_id][flow.flow_id][flow.cur_path_id] = 1
+    return old_y.tolist()
+
+
 """
     get the rate of each flow
     n: the Net or SubNetwork object

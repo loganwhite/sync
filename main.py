@@ -6,6 +6,7 @@ from Network import Net
 from SubNetwork import SubNetwork
 
 from OptimalPy import *
+from OptimalPy_new import *
 import copy
 import os
 import sys
@@ -186,6 +187,25 @@ def main():
 
             print("start changing dst process on subnetwork %d\n" % i)
             candidate_nodes = subnet_list[i].get_candidate_nodes(groups_list)
+
+            # sort the flow according to the link utilization, desc
+            sorted_flows = get_sorted_reroute_flows(candidate_nodes, subnet_list[i])
+            sorted_flowsid = [item[0] for item in sorted_flows]
+
+            sub_newOp = init_newOp(subnet_list[i], sub_pathcandidate[i],
+                                   sub_flow_pathid_list[i], sub_LBs[i],
+                                    subgraph_list[i], candidate_nodes)
+            newOp_oldy = get_newOp_oldy(subnet_list[i])
+            flow_rate = get_flow_rate(subnet_list[i])
+            link_rate = get_link_rate(subnet_list[i])
+
+            sub_newOp.process(newOp_oldy, flow_rate, link_rate, sorted_flowsid)
+
+
+
+
+            # a copy of current best network condition (lowest link util)
+            best_subnet = copy.deepcopy(subnet_list[i])
             for flow_id, candidate_dst in candidate_nodes.iteritems():
                 cur_subflow = subnet_list[i].inner_flow_dict[flow_id]
 
@@ -213,41 +233,20 @@ def main():
 
                     print("current link util of subnetwork %d is: %f\n" % (i, new_tmp_util))
 
+                    # if this dst cannot be the current best
+                    if new_tmp_util >= best_subnet.calc_link_utilization():
+                        continue
+
                     if new_tmp_util <= threshold:
                         print "find a suitable dst node\n"
                         flag = 1
+                        subnet_list[i].migrate_next_grp_traffic()
                         break
 
                 if flag == 1:
                     break
             print("new subnetwork %d util: %f\n" % (i, subnet_list[i].calc_link_utilization()))
 
-
-
-            # if prev_util > threshold:
-            #     tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i], sub_flows_rates[i],
-            #                                              sub_link_rates[i], sub_all_flow_ids[i])
-            #     sub_tpls.append(tmp_tpls)
-            #     sub_new_y.append(tmp_new_y)
-            #     subnet_list[i].apply_modification(tmp_tpls, sub_oldys[i], tmp_new_y)
-            #     tmp_util = subnet_list[i].calc_link_utilization()
-            #     if tmp_util > threshold:
-            #         candidate_nodes = subnet_list[i].get_candidate_nodes(groups_list)
-            #         for flow_id, candidate_dst in candidate_nodes.iteritems():
-            #             if subnet_list[i].inner_flow_dict[flow_id].is_subflow:
-            #                 for node in candidate_dst:
-            #                     traffic_tranfer(subnet_list[i], flow_id, node)
-            #                     tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i], sub_flows_rates[i],
-            #                                                              sub_link_rates[i], sub_all_flow_ids[i])
-            #                     sub_tpls.append(tmp_tpls)
-            #                     sub_new_y.append(tmp_new_y)
-            #                     subnet_list[i].apply_modification(tmp_tpls, sub_oldys[i], tmp_new_y)
-            #                     tmp_util = subnet_list[i].calc_link_utilization()
-            #                     if tmp_util < threshold:
-            #                         break
-            #
-            #         print subnet_list[i].calc_link_utilization()
-            #         print '\n'
 
 
 
@@ -347,6 +346,29 @@ def init_op(network, pathcandidate, flow_pathid_list, LB, g):
 
     return op
 
+def init_newOp(network, pathcandidate, flow_pathid_list, LB, g, flow_candidate_dict):
+    """
+    init the new Op object
+    :param network:
+    :param pathcandidate:
+    :param flow_pathid_list:
+    :param LB:
+    :param g:
+    :param flow_candidate_dict:
+    :return:
+    """
+    nodes_num, links_num, total_paths_num, flows_num, p_l, p_n = get_params(network, g)
+
+    # calculate the flow-flow-pathcandidate  3d matrix
+    flow_flowcandidate_path = calculate_flow_flow_path_matrix(flow_candidate_dict, network)
+
+    new_op = Optimal_new(total_paths_num, flows_num,
+                         links_num, nodes_num, p_l, p_n,
+                         LB, TB, OL, pathcandidate,
+                         flow_pathid_list, no_loop_para,
+                         flow_flowcandidate_path)
+    return new_op
+
 
 """
     remove flow A traffic to flow B
@@ -412,7 +434,7 @@ def adjust_groups(groups_list, whole_network):
     for i in range(len(groups_list)):
         # find connecting edge between anyother groups
         cur_grp = groups_list[i]
-        new_grp = deepcopy(cur_grp)   # make a deepcopy in case of it is a reference
+        new_grp = copy.deepcopy(cur_grp)   # make a deepcopy in case of it is a reference
         for j in range(len(groups_list)):
             if i == j:
                 continue
@@ -431,6 +453,52 @@ def adjust_groups(groups_list, whole_network):
 
         new_grps_list.append(new_grp)
     return new_grps_list
+
+
+def get_sorted_reroute_flows(candidate_nodes, network):
+    """
+    get the list of sorted flow id
+    :param candidate_nodes: the calculated candidate nodes.
+    :param network: the network object
+    :return: the list of sorted flow id
+    """
+    flow_linkutil_tuple_list = []
+
+    # get flow IDs
+    for flow_id, _ in candidate_nodes.iteritems():
+        flow_link_util = network.get_flow_link_utilization(flow_id)
+        flow_linkutil_tuple_list.append((flow_id, flow_link_util))
+
+    sorted(flow_linkutil_tuple_list, key=lambda t: t[1], reverse=True)
+
+    return flow_linkutil_tuple_list
+
+
+
+def calculate_flow_flow_path_matrix(flow_candidate, network):
+    """
+    get the flow-flowcandidate-candidateflowpath matrix (3D)
+    :param flow_candidate: flow_candidate dict
+    :param network: the network object
+    :return: the 3D matrix
+    """
+    flows_num = len(network.flows_dict)
+    path_num = len(network.paths_dict)
+    flow_flowcandidate_path = np.zeros((flows_num, flows_num, path_num))
+    for flow_id, candidate_dst in flow_candidate.iteritems():
+
+        # add the flow itself as a flow candidate
+        for path_id in network.flows_dict[flow_id].path_list:
+            flow_flowcandidate_path[flow_id][flow_id][path_id] = 1
+        src = network.flows_dict[flow_id].src
+        for dst in candidate_dst:
+            if (src, dst) in network.flowID_dict:
+                candidate_flow_id = network.flowID_dict[(src, dst)]
+                candidate_flow = network.flows_dict[candidate_flow_id]
+                for path_id in candidate_flow.path_list:
+                    flow_flowcandidate_path[flow_id, candidate_flow_id, path_id] = 1
+    return flow_flowcandidate_path
+
 
 
 
