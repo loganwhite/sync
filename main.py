@@ -119,6 +119,9 @@ def main():
         sub_link_rates = []
         sub_tpls = []
         sub_new_y = []
+
+        # (old flow id, new flow id) pair of each subnet
+        sub_flow_pair = []
         for i in range(len(subnet_list)):
             # apply subnetwork traffic
             subnet_list[i].apply_traffic(domain_matrices[i])
@@ -207,6 +210,17 @@ def main():
             subnet_list[i].apply_modification_newOp(tmp_tpls)
 
 
+            flow_pair_list = get_oldnew_flowpair_list(tmp_tpls)
+            sub_flow_pair.append(flow_pair_list)
+
+        # end for
+
+        final_list = adjust_subnets_ingree(subnet_list, n, sub_flow_pair, subgraph_list)
+        sync_times = len(sub_flow_pair)
+        print final_list
+        print sync_times
+
+
 
 
 
@@ -251,7 +265,10 @@ def main():
             #
             #     if flag == 1:
             #         break
-            print("new subnetwork %d util: %f\n" % (i, subnet_list[i].calc_link_utilization()))
+            # print("new subnetwork %d util: %f\n" % (i, subnet_list[i].calc_link_utilization()))
+        # end for each subnet
+
+
 
 
 
@@ -392,25 +409,57 @@ def init_newOp(network, pathcandidate, flow_pathid_list, LB, g, flow_candidate_d
     network: the SubNetwork object    
 """
 def traffic_tranfer(network, flow_id, new_dst):
-    flow = network.flows_dict[flow_id]
+
+    old_flow = network.flows_dict[flow_id]
+    new_flow_id = network.flowID_dict[(old_flow.src, new_dst)]
+    migrate_traffic(network, flow_id, new_flow_id)
+
+    # flow = network.flows_dict[flow_id]
+    #
+    # # remove the rate on old flow, and links
+    # rate = flow.rate
+    # flow.rate = 0
+    # network.flows_dict[flow_id].rate = 0
+    # path = network.paths_dict[flow.cur_path_id]
+    # for link_id in path.links:
+    #     network.links_dict[link_id].rate -= rate
+    #
+    # # apply traffic on new flow
+    # # get the new flow id
+    # new_flow_id = network.flowID_dict[(flow.src, new_dst)]
+    # network.flows_dict[new_flow_id].rate += rate
+    # network.flows_dict[new_flow_id].rate += rate
+    # path = network.paths_dict[network.flows_dict[new_flow_id].cur_path_id]
+    # for link_id in path.links:
+    #     network.links_dict[link_id].rate += rate
+
+def migrate_traffic(network, old_flow_id, new_flow_id):
+    """
+    transfer traffic from old flow to new flow
+    :param network:
+    :param old_flow_id:
+    :param new_flow_id:
+    :return: no return
+    """
+
+    flow = network.flows_dict[old_flow_id]
 
     # remove the rate on old flow, and links
     rate = flow.rate
     flow.rate = 0
-    network.flows_dict[flow_id].rate = 0
+    network.flows_dict[old_flow_id].rate = 0
     path = network.paths_dict[flow.cur_path_id]
     for link_id in path.links:
         network.links_dict[link_id].rate -= rate
 
     # apply traffic on new flow
     # get the new flow id
-    new_flow_id = network.flowID_dict[(flow.src, new_dst)]
+
     network.flows_dict[new_flow_id].rate += rate
     network.flows_dict[new_flow_id].rate += rate
     path = network.paths_dict[network.flows_dict[new_flow_id].cur_path_id]
     for link_id in path.links:
         network.links_dict[link_id].rate += rate
-
 
 
 def get_group_list_from_switch_contro(switch_contro):
@@ -512,6 +561,179 @@ def calculate_flow_flow_path_matrix(flow_candidate, network):
                 for path_id in candidate_flow.path_list:
                     flow_flowcandidate_path[flow_id, candidate_flow_id, path_id] = 1
     return flow_flowcandidate_path
+
+
+def adjust_subnets_ingree(subnet_list, whole_network, modified_flows_list, subgraph_list):
+    """
+    change the ingress node for each flow in the next domain.
+    :param subnet_list: the subnet list
+    :param modified_flows_list: list of changed flow list, the flow in the previous domain
+            where the key is the domain id and the value is the flow_id tuple list (old_flow, new_flow).
+    :param subgraph_list: the igraph graph object of the subnetworks
+    :return: subnet util list
+    """
+
+
+    for domain_id in range(len(modified_flows_list)):
+        subnet = subnet_list[domain_id]
+        flows_list = modified_flows_list[domain_id]
+        for flow_id_tuple in flows_list:
+            # the old flow id
+            flow_id = flow_id_tuple[0]
+            if not subnet.inner_flow_dict[flow_id].is_subflow:
+                continue
+
+            # get the whole flow and flow id
+            whole_flow_id = subnet.inner_flow_dict[flow_id].flow_id
+            whole_flow = subnet.inner_flow_dict[flow_id]
+            whole_path = whole_network.paths_dict[whole_flow.cur_path_id].nodes
+
+
+            # get the egress node of this flow
+            egress = subnet.flows_dict[flow_id].dst
+
+            # this case is not possible
+            # # if the flow has comes to the end
+            # if egress == whole_flow.dst:
+            #     continue
+
+            # get the next domain flow
+
+            # in the whole flow, first find domain
+            # and then find the next egress and find the flow
+            next_flow_nodes = [egress]
+            domain_id_vector = [1 for i in range(len(subnet_list))]
+            # domain_id_vector = np.ones((0, len(subnet_list)), dtype=np.int)
+            domain_id_vector[domain_id] = 0
+
+            # test if the only domain is selected
+            while sum(domain_id_vector) != 1:
+
+                for i in range(len(domain_id_vector)):
+                    if domain_id_vector[i] == 0:
+                        continue
+                    subnet_nodes = [n_id for n_id, _ in subnet_list[i].nodes_dict.iteritems()]
+
+                    # remove the domain that the node is not reside in.
+                    if not set(next_flow_nodes).issubset(set(subnet_nodes)):
+                        domain_id_vector[i] = 0
+                # end for
+                if next_flow_nodes[-1] not in whole_path:
+                    break
+                next_node_index = whole_path.index(next_flow_nodes[-1]) + 1
+                if next_node_index >= len(whole_path):
+                    break
+
+                next_node = whole_path[next_node_index]
+                next_flow_nodes.append(next_node)
+            # end while
+            selected_domain_id = -1
+            for i in range(len(domain_id_vector)):
+                if domain_id_vector[i]:
+                    selected_domain_id = i
+                    break
+            # end for
+
+            if selected_domain_id == -1:
+                continue
+
+            # get the next egress
+            next_domain_nodes = [n_id for n_id, _ in
+                                 subnet_list[selected_domain_id].nodes_dict.iteritems()]
+
+            while next_flow_nodes[-1] in next_domain_nodes:
+                if next_flow_nodes[-1] not in whole_path:
+                    break
+                next_node_index = whole_path.index(next_flow_nodes[-1]) + 1
+                if next_node_index >= len(whole_path):
+                    break
+
+                next_node = whole_path[next_node_index]
+                next_flow_nodes.append(next_node)
+            # end while
+            if len(next_flow_nodes) >= 2:
+                next_egress = next_flow_nodes[-2]
+            else:
+                next_egress = next_flow_nodes[-1]
+
+            if next_egress == egress:
+                continue
+
+            # find the next flow_id, note that the flow_id_tuple[1] is the new egress the the current domain
+            next_flow_id_old = subnet_list[selected_domain_id].flowID_dict[(egress, next_egress)]
+            next_flow_id_new = subnet_list[selected_domain_id].flowID_dict[(flow_id_tuple[1], next_egress)]
+            # migrate traffic
+            migrate_traffic(subnet_list[selected_domain_id], next_flow_id_old, next_flow_id_new)
+
+            link_util = subnet_list[selected_domain_id].calc_link_utilization()
+            if link_util <= threshold:
+                continue
+
+
+            #init op
+            next_critical_flow = [next_flow_id_new]
+            next_LB = get_link_capacity(subnet_list[selected_domain_id])
+            next_pathcandidate = get_path_candidate(subnet_list[selected_domain_id])
+            next_flow_pathid_list = get_flow_path_id(subnet_list[selected_domain_id])
+
+            next_op = init_op(subnet_list[selected_domain_id], next_pathcandidate,
+                                   next_flow_pathid_list, next_LB, subgraph_list[selected_domain_id])
+
+            # init params for process
+            next_oldy = get_old_y(subnet_list[selected_domain_id])
+            next_flow_rates = get_flow_rate(subnet_list[selected_domain_id])
+            next_all_flow_ids = get_all_flows(subnet_list[selected_domain_id])
+            next_link_rates = get_link_rate(subnet_list[selected_domain_id])
+
+            # process
+            tmp_tpls, tmp_new_y = next_op.process(next_oldy, next_flow_rates,
+                                                     next_link_rates, next_critical_flow)
+
+            # for flow_id, flow in subnet_list[i].inner_flow_dict.iteritems():
+            #     print("%d\t%d\n" %(flow_id, flow.cur_path_id))
+
+            subnet_list[selected_domain_id].apply_modification(tmp_tpls, next_oldy, tmp_new_y)
+            tmp_util = subnet_list[selected_domain_id].calc_link_utilization()
+
+            print("ajusted subnetwork %d utilization: %f\n" % (selected_domain_id, tmp_util))
+        # end if flow_id
+
+    # end if domain id
+
+    subnet_util = []
+    for subnet in subnet_list:
+        subnet_util.append(subnet.calc_link_utilization())
+
+    return subnet_util
+
+
+def get_oldnew_flowpair_list(tmp_tpls):
+    """
+    get old flow and new flow pair list from the op generated output tuple list
+    :param tmp_tpls: the op generated tuple list
+    :return: only changed flows
+    """
+
+    res_list = []
+    for item in tmp_tpls:
+        if item[0] == item[1]:
+            continue
+        else:
+            res_list.append((int(item[0]), int(item[1])))
+
+    return res_list
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

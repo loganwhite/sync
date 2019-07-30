@@ -81,7 +81,7 @@ class SubNetwork(Net):
             linkutil_list.append((l_k, (float(l_v.rate) / float(l_v.capacity))))
         res = max(linkutil_list, key=lambda t: t[1])
 
-        print("link util at link: %d\n" % res[0])
+        print("link util at link: %d, util: %f\n" % (res[0], res[1]))
         test_print_flows(self, res[0])
 
         return res[1]
