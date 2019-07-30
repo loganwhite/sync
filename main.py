@@ -192,6 +192,8 @@ def main():
             sorted_flows = get_sorted_reroute_flows(candidate_nodes, subnet_list[i])
             sorted_flowsid = [item[0] for item in sorted_flows]
 
+
+
             print("start new Op, current util: %f" % subnet_list[i].calc_link_utilization())
 
             sub_newOp = init_newOp(subnet_list[i], sub_pathcandidate[i],
@@ -201,52 +203,54 @@ def main():
             flow_rate = get_flow_rate(subnet_list[i])
             link_rate = get_link_rate(subnet_list[i])
 
-            sub_newOp.process(newOp_oldy, flow_rate, link_rate, sorted_flowsid)
+            tmp_tpls, tmp_new_y = sub_newOp.process(newOp_oldy, flow_rate, link_rate, sorted_flowsid)
+            subnet_list[i].apply_modification_newOp(tmp_tpls)
 
 
 
 
-            # a copy of current best network condition (lowest link util)
-            best_subnet = copy.deepcopy(subnet_list[i])
-            for flow_id, candidate_dst in candidate_nodes.iteritems():
-                cur_subflow = subnet_list[i].inner_flow_dict[flow_id]
 
-                # this is absolutely a subflow, because candidate
-                # is contains only subflows.
-                if not cur_subflow.is_subflow:
-                    continue
-
-                # remove the current dst node in the candidate list
-                if cur_subflow.dst in candidate_dst:
-                    candidate_dst.remove(cur_subflow.dst)
-
-                # test flag
-                flag = 0
-                for node in candidate_dst:
-                    if node == subnet_list[i].inner_flow_dict[flow_id].src:
-                        continue
-                    traffic_tranfer(subnet_list[i], flow_id, node)
-                    tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i], sub_flows_rates[i],
-                                                             sub_link_rates[i], critical_flow_subs[i])
-                    sub_tpls.append(tmp_tpls)
-                    sub_new_y.append(tmp_new_y)
-                    subnet_list[i].apply_modification(tmp_tpls, sub_oldys[i], tmp_new_y)
-                    new_tmp_util = subnet_list[i].calc_link_utilization()
-
-                    print("current link util of subnetwork %d is: %f\n" % (i, new_tmp_util))
-
-                    # if this dst cannot be the current best
-                    if new_tmp_util >= best_subnet.calc_link_utilization():
-                        continue
-
-                    if new_tmp_util <= threshold:
-                        print "find a suitable dst node\n"
-                        flag = 1
-                        subnet_list[i].migrate_next_grp_traffic()
-                        break
-
-                if flag == 1:
-                    break
+            # # a copy of current best network condition (lowest link util)
+            # best_subnet = copy.deepcopy(subnet_list[i])
+            # for flow_id, candidate_dst in candidate_nodes.iteritems():
+            #     cur_subflow = subnet_list[i].inner_flow_dict[flow_id]
+            #
+            #     # this is absolutely a subflow, because candidate
+            #     # is contains only subflows.
+            #     if not cur_subflow.is_subflow:
+            #         continue
+            #
+            #     # remove the current dst node in the candidate list
+            #     if cur_subflow.dst in candidate_dst:
+            #         candidate_dst.remove(cur_subflow.dst)
+            #
+            #     # test flag
+            #     flag = 0
+            #     for node in candidate_dst:
+            #         if node == subnet_list[i].inner_flow_dict[flow_id].src:
+            #             continue
+            #         traffic_tranfer(subnet_list[i], flow_id, node)
+            #         tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i], sub_flows_rates[i],
+            #                                                  sub_link_rates[i], critical_flow_subs[i])
+            #         sub_tpls.append(tmp_tpls)
+            #         sub_new_y.append(tmp_new_y)
+            #         subnet_list[i].apply_modification(tmp_tpls, sub_oldys[i], tmp_new_y)
+            #         new_tmp_util = subnet_list[i].calc_link_utilization()
+            #
+            #         print("current link util of subnetwork %d is: %f\n" % (i, new_tmp_util))
+            #
+            #         # if this dst cannot be the current best
+            #         if new_tmp_util >= best_subnet.calc_link_utilization():
+            #             continue
+            #
+            #         if new_tmp_util <= threshold:
+            #             print "find a suitable dst node\n"
+            #             flag = 1
+            #             subnet_list[i].migrate_next_grp_traffic()
+            #             break
+            #
+            #     if flag == 1:
+            #         break
             print("new subnetwork %d util: %f\n" % (i, subnet_list[i].calc_link_utilization()))
 
 
@@ -365,13 +369,18 @@ def init_newOp(network, pathcandidate, flow_pathid_list, LB, g, flow_candidate_d
     flow_flowcandidate_path = calculate_flow_flow_path_matrix(flow_candidate_dict, network)
     # flow_candidate_flow_num = []
     # for flow_id, candidate_nodes in flow_candidate_dict.iteritems():
-
+    flow_candidate_flow = []
+    for i in range(len(network.flows_dict)):
+        if i in flow_candidate_dict:
+            flow_candidate_flow.append(flow_candidate_dict[i]+[i])
+        else:
+            flow_candidate_flow.append([i])
 
     new_op = Optimal_new(total_paths_num, flows_num,
                          links_num, nodes_num, p_l, p_n,
                          LB, TB, OL, pathcandidate,
                          flow_pathid_list, no_loop_para,
-                         flow_flowcandidate_path, len(flow_candidate_dict) + 1)
+                         flow_flowcandidate_path, flow_candidate_flow)
     return new_op
 
 
@@ -388,7 +397,7 @@ def traffic_tranfer(network, flow_id, new_dst):
     # remove the rate on old flow, and links
     rate = flow.rate
     flow.rate = 0
-    network.inner_flow_dict[flow_id].rate = 0
+    network.flows_dict[flow_id].rate = 0
     path = network.paths_dict[flow.cur_path_id]
     for link_id in path.links:
         network.links_dict[link_id].rate -= rate
@@ -396,9 +405,9 @@ def traffic_tranfer(network, flow_id, new_dst):
     # apply traffic on new flow
     # get the new flow id
     new_flow_id = network.flowID_dict[(flow.src, new_dst)]
-    network.inner_flow_dict[new_flow_id].rate += rate
     network.flows_dict[new_flow_id].rate += rate
-    path = network.paths_dict[network.inner_flow_dict[new_flow_id].cur_path_id]
+    network.flows_dict[new_flow_id].rate += rate
+    path = network.paths_dict[network.flows_dict[new_flow_id].cur_path_id]
     for link_id in path.links:
         network.links_dict[link_id].rate += rate
 

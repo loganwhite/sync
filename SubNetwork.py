@@ -1,4 +1,5 @@
 from Network import *
+from test import test_print_flows
 
 
 class SubNetwork(Net):
@@ -77,9 +78,13 @@ class SubNetwork(Net):
 
         # add the subnetwork links' utilization
         for l_k, l_v in self.links_dict.iteritems():
-            linkutil_list.append(float(l_v.rate) / float(l_v.capacity))
+            linkutil_list.append((l_k, (float(l_v.rate) / float(l_v.capacity))))
+        res = max(linkutil_list, key=lambda t: t[1])
 
-        return max(linkutil_list)
+        print("link util at link: %d\n" % res[0])
+        test_print_flows(self, res[0])
+
+        return res[1]
 
 
     """
@@ -125,6 +130,28 @@ class SubNetwork(Net):
                 candidate_nodes[flow_id] = list(tmp_nodes)
 
         return candidate_nodes
+
+
+    def apply_modification_newOp(self, tuple):
+        """
+        apply changes to the new op results.
+        :param tuple: contains, old flow, new flow and new path.
+        :return: no return
+        """
+
+        for item in tuple:
+            old_flow_id = item[0]
+            new_flow_id = item[1]
+            new_path_id = item[2]
+            old_flow = self.flows_dict[old_flow_id]
+            old_inner_flow = self.inner_flow_dict[old_flow_id]
+            new_flow = self.flows_dict[new_flow_id]
+            new_inner_flow = self.inner_flow_dict[new_flow_id]
+
+            new_flow.cur_path_id = new_path_id
+            from main import traffic_tranfer
+            traffic_tranfer(self, old_flow_id, new_flow.dst)
+
 
 
 
