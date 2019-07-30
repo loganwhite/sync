@@ -192,6 +192,8 @@ def main():
             sorted_flows = get_sorted_reroute_flows(candidate_nodes, subnet_list[i])
             sorted_flowsid = [item[0] for item in sorted_flows]
 
+            print("start new Op, current util: %f" % subnet_list[i].calc_link_utilization())
+
             sub_newOp = init_newOp(subnet_list[i], sub_pathcandidate[i],
                                    sub_flow_pathid_list[i], sub_LBs[i],
                                     subgraph_list[i], candidate_nodes)
@@ -355,18 +357,21 @@ def init_newOp(network, pathcandidate, flow_pathid_list, LB, g, flow_candidate_d
     :param LB:
     :param g:
     :param flow_candidate_dict:
-    :return:
+    :return: the new op object
     """
     nodes_num, links_num, total_paths_num, flows_num, p_l, p_n = get_params(network, g)
 
     # calculate the flow-flow-pathcandidate  3d matrix
     flow_flowcandidate_path = calculate_flow_flow_path_matrix(flow_candidate_dict, network)
+    # flow_candidate_flow_num = []
+    # for flow_id, candidate_nodes in flow_candidate_dict.iteritems():
+
 
     new_op = Optimal_new(total_paths_num, flows_num,
                          links_num, nodes_num, p_l, p_n,
                          LB, TB, OL, pathcandidate,
                          flow_pathid_list, no_loop_para,
-                         flow_flowcandidate_path)
+                         flow_flowcandidate_path, len(flow_candidate_dict) + 1)
     return new_op
 
 
@@ -484,7 +489,7 @@ def calculate_flow_flow_path_matrix(flow_candidate, network):
     """
     flows_num = len(network.flows_dict)
     path_num = len(network.paths_dict)
-    flow_flowcandidate_path = np.zeros((flows_num, flows_num, path_num))
+    flow_flowcandidate_path = np.zeros((flows_num, flows_num, path_num), dtype=np.int)
     for flow_id, candidate_dst in flow_candidate.iteritems():
 
         # add the flow itself as a flow candidate
