@@ -21,7 +21,7 @@ from test import *          # test functions
 
 
 
-def main():
+def main(traffic_gen_ratio, threshold, epoch):
     # declare the global variables
     global a, ratio, group_num, topo
      # attempt to get the arguments.
@@ -77,8 +77,12 @@ def main():
     subnet_list, subgraph_list = cal_subnets(g, groups_list, n)
 
 
+    # results
+    res_utils = []
+    res_syncs = []
 
-    for matrix in matrices_list[:1]:
+    # for matrix in matrices_list[:1]:
+    for matrix in range(epoch):
         # used for att network
         node_num = len(n.nodes_dict)
         matrix = generate_traffic_matrix((node_num, node_num), link_capacity, traffic_gen_ratio)
@@ -219,6 +223,12 @@ def main():
         sync_times = len(sub_flow_pair)
         print final_list
         print sync_times
+        res_utils.append(final_list)
+        res_syncs.append(sync_times)
+
+    return res_utils, res_syncs
+
+
 
 
 
@@ -590,7 +600,7 @@ def adjust_subnets_ingree(subnet_list, whole_network, modified_flows_list, subgr
 
 
             # get the egress node of this flow
-            egress = subnet.flows_dict[flow_id].dst
+            egress = int(subnet.flows_dict[flow_id].dst)
 
             # this case is not possible
             # # if the flow has comes to the end
@@ -655,12 +665,17 @@ def adjust_subnets_ingree(subnet_list, whole_network, modified_flows_list, subgr
                 next_egress = next_flow_nodes[-2]
             else:
                 next_egress = next_flow_nodes[-1]
+            next_egress = int(next_egress)
 
             if next_egress == egress:
                 continue
 
             # find the next flow_id, note that the flow_id_tuple[1] is the new egress the the current domain
+            if (egress, next_egress) not in subnet_list[selected_domain_id].flowID_dict:
+                continue
             next_flow_id_old = subnet_list[selected_domain_id].flowID_dict[(egress, next_egress)]
+            if (flow_id_tuple[1], next_egress) not in subnet_list[selected_domain_id].flowID_dict:
+                continue
             next_flow_id_new = subnet_list[selected_domain_id].flowID_dict[(flow_id_tuple[1], next_egress)]
             # migrate traffic
             migrate_traffic(subnet_list[selected_domain_id], next_flow_id_old, next_flow_id_new)
@@ -745,4 +760,24 @@ def get_oldnew_flowpair_list(tmp_tpls):
 
 if __name__ == '__main__':
 
-    main()
+    traffic_gen_ratios = [0.01,0.02,0.03,0.04, 0.05]
+    thresholds = [0.3, 0.4, 0.5, 0.6]
+    epoch = 20
+    if not os.path.exists('data'):
+        os.makedirs('data')
+    f_u = open('data/util', 'w')
+    f_s = open('data/sync', 'w')
+    for traffic_gen_ratio in traffic_gen_ratios:
+        for threshold in thresholds:
+            res_utils, res_syncs = main(traffic_gen_ratio, threshold, epoch)
+
+            util_varname = 'data/utils_ratio_{}_threshold_{}'.format(traffic_gen_ratio, threshold)
+            sync_varname = 'data/syncs_ratio_{}_threshold_{}'.format(traffic_gen_ratio, threshold)
+
+            f_u.write("%s=%s\n" % (util_varname, res_utils))
+            f_s.write("%s=%s\n" % (sync_varname, res_syncs))
+    f_u.close()
+    f_s.close()
+
+
+

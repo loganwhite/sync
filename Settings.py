@@ -33,8 +33,8 @@ ratio = 0.9
 topo = "AttMpls"
 
 # rerouting threshold
-threshold = 0.5
+# threshold = 0.5
 
 link_capacity = 9920000
 
-traffic_gen_ratio = 0.03
+# traffic_gen_ratio = 0.03
