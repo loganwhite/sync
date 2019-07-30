@@ -773,6 +773,7 @@ if __name__ == '__main__':
 
             util_varname = 'data/utils_ratio_{}_threshold_{}'.format(traffic_gen_ratio, threshold)
             sync_varname = 'data/syncs_ratio_{}_threshold_{}'.format(traffic_gen_ratio, threshold)
+            print sync_varname
 
             f_u.write("%s=%s\n" % (util_varname, res_utils))
             f_s.write("%s=%s\n" % (sync_varname, res_syncs))
