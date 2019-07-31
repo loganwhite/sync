@@ -217,6 +217,8 @@ def main(traffic_gen_ratio, threshold, epoch):
             flow_pair_list = get_oldnew_flowpair_list(tmp_tpls)
             sub_flow_pair.append(flow_pair_list)
 
+            subnet_list[i].fall_back_shortest_path()
+
         # end for
 
         final_list = adjust_subnets_ingree(subnet_list, n, sub_flow_pair, subgraph_list)
@@ -771,8 +773,8 @@ if __name__ == '__main__':
         for threshold in thresholds:
             res_utils, res_syncs = main(traffic_gen_ratio, threshold, epoch)
 
-            util_varname = 'data/utils_ratio_{}_threshold_{}'.format(traffic_gen_ratio, threshold)
-            sync_varname = 'data/syncs_ratio_{}_threshold_{}'.format(traffic_gen_ratio, threshold)
+            util_varname = 'utils_ratio_{}_threshold_{}'.format(traffic_gen_ratio, threshold)
+            sync_varname = 'syncs_ratio_{}_threshold_{}'.format(traffic_gen_ratio, threshold)
             print sync_varname
 
             f_u.write("%s=%s\n" % (util_varname, res_utils))

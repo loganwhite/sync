@@ -104,17 +104,17 @@ plot_box(ratio_var_sync_t06, ['1\%', '2\%', '3\%', '4\%'], 'Traffic Capacity Rat
 
 
 # ratio 001 threshold variable
-plot_box(thre_var_util_r001, ['50\%', '60\%'], 'Traffic Capacity Ratio', 'Link utilization (\%)', 'thre_var_util_r001')
-plot_box(thre_var_sync_r001, ['50\%', '60\%'], 'Traffic Capacity Ratio', 'Number of Synchronizations', 'thre_var_sync_r001')
+plot_box(thre_var_util_r001, ['50\%', '60\%'], 'Threshold', 'Link utilization (\%)', 'thre_var_util_r001')
+plot_box(thre_var_sync_r001, ['50\%', '60\%'], 'Threshold', 'Number of Synchronizations', 'thre_var_sync_r001')
 
 # ratio 002 threshold variable
-plot_box(thre_var_util_r002, ['50\%', '60\%'], 'Traffic Capacity Ratio', 'Link utilization (\%)', 'thre_var_util_r002')
+plot_box(thre_var_util_r002, ['50\%', '60\%'], 'Threshold', 'Link utilization (\%)', 'thre_var_util_r002')
 plot_box(thre_var_sync_r002, ['50\%', '60\%'], 'Traffic Capacity Ratio', 'Number of Synchronizations', 'thre_var_sync_r002')
 
 # ratio 003 threshold variable
-plot_box(thre_var_util_r003, ['50\%', '60\%'], 'Traffic Capacity Ratio', 'Link utilization (\%)', 'thre_var_util_r003')
+plot_box(thre_var_util_r003, ['50\%', '60\%'], 'Threshold', 'Link utilization (\%)', 'thre_var_util_r003')
 plot_box(thre_var_sync_r003, ['50\%', '60\%'], 'Traffic Capacity Ratio', 'Number of Synchronizations', 'thre_var_sync_r003')
 
 # ratio 004 threshold variable
-plot_box(thre_var_util_r004, ['50\%', '60\%'], 'Traffic Capacity Ratio', 'Link utilization (\%)', 'thre_var_util_r004')
-plot_box(thre_var_sync_r004, ['50\%', '60\%'], 'Traffic Capacity Ratio', 'Number of Synchronizations', 'thre_var_sync_r004')
+plot_box(thre_var_util_r004, ['50\%', '60\%'], 'Threshold', 'Link utilization (\%)', 'thre_var_util_r004')
+plot_box(thre_var_sync_r004, ['50\%', '60\%'], 'Threshold', 'Number of Synchronizations', 'thre_var_sync_r004')
