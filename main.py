@@ -773,21 +773,6 @@ def get_oldnew_flowpair_list(tmp_tpls):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 if __name__ == '__main__':
 
     traffic_gen_ratios = [0.01,0.02,0.03,0.04]

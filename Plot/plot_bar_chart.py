@@ -75,15 +75,18 @@ pylab.rcParams.update(params)
 
 
 
-def plot_box(data, xticks, xlabel, ylabel, filename):
+def plot_bar(data, xticks, xlabel, ylabel, filename):
 
     plt.close('all')
     plt.figure()
 
-    plt.boxplot(data, whis=[5, 95])
+    x_pos = np.arange(1, len(data) + 1)
+    xticks = x_pos
+    # for i in range(len(data)):
+    plt.bar(x_pos, data, color=COLORS[0])
 
-    x_ticks_num = [i for i in range(1, len(xticks) + 1)]
-    plt.xticks(x_ticks_num, xticks)
+    
+    # plt.xticks(x_pos, xticks)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.tight_layout(True)
@@ -91,31 +94,21 @@ def plot_box(data, xticks, xlabel, ylabel, filename):
     filename = filename
     
     plt.savefig('{}.pdf'.format(filename), format='pdf', dpi=900)
-
     # plt.show()
 
+# ratio001 thresh05 06
+plot_bar(np.multiply(thre_var_util_r001[0], 100.0), '', 'Epoch', 'Maximum link utilization (\%)', 'thre_05_util_r001')
+plot_bar(np.multiply(thre_var_util_r001[1], 100.0), '', 'Epoch', 'Maximum link utilization (\%)', 'thre_06_util_r001')
 
-# threshold 5 ratio variable
-plot_box(np.multiply(ratio_var_util_t05, 100.0).transpose(), ['1\%', '2\%', '3\%', '4\%'], 'Traffic Capacity Ratio', 'Maximum link utilization (\%)', 'ratio_var_util_t05')
-plot_box(ratio_var_sync_t05, ['1\%', '2\%', '3\%', '4\%'], 'Traffic Capacity Ratio', 'Number of Synchronizations', 'ratio_var_sync_t05')
+# ratio002 thresh05 06
+plot_bar(np.multiply(thre_var_util_r002[0], 100.0), '', 'Epoch', 'Maximum link utilization (\%)', 'thre_05_util_r002')
+plot_bar(np.multiply(thre_var_util_r002[1], 100.0), '', 'Epoch', 'Maximum link utilization (\%)', 'thre_06_util_r002')
 
-# threshold 6 ratio variable
-plot_box(np.multiply(ratio_var_util_t06, 100.0).transpose(), ['1\%', '2\%', '3\%', '4\%'], 'Traffic Capacity Ratio', 'Maximum link utilization (\%)', 'ratio_var_util_t06')
-plot_box(ratio_var_sync_t06, ['1\%', '2\%', '3\%', '4\%'], 'Traffic Capacity Ratio', 'Number of Synchronizations', 'ratio_var_sync_t06')
+# ratio003 thresh05 06
+plot_bar(np.multiply(thre_var_util_r003[0], 100.0), '', 'Epoch', 'Maximum link utilization (\%)', 'thre_05_util_r003')
+plot_bar(np.multiply(thre_var_util_r003[1], 100.0), '', 'Epoch', 'Maximum link utilization (\%)', 'thre_06_util_r003')
 
+# ratio004 thresh05 06
+plot_bar(np.multiply(thre_var_util_r004[0], 100.0), '', 'Epoch', 'Maximum link utilization (\%)', 'thre_05_util_r004')
+plot_bar(np.multiply(thre_var_util_r004[1], 100.0), '', 'Epoch', 'Maximum link utilization (\%)', 'thre_06_util_r004')
 
-# ratio 001 threshold variable
-plot_box(np.multiply(thre_var_util_r001, 100.0).transpose(), ['50\%', '60\%'], 'Threshold', 'Maximum link utilization (\%)', 'thre_var_util_r001')
-plot_box(thre_var_sync_r001, ['50\%', '60\%'], 'Threshold', 'Number of Synchronizations', 'thre_var_sync_r001')
-
-# ratio 002 threshold variable
-plot_box(np.multiply(thre_var_util_r002, 100.0).transpose(), ['50\%', '60\%'], 'Threshold', 'Maximum link utilization (\%)', 'thre_var_util_r002')
-plot_box(thre_var_sync_r002, ['50\%', '60\%'], 'Traffic Capacity Ratio', 'Number of Synchronizations', 'thre_var_sync_r002')
-
-# ratio 003 threshold variable
-plot_box(np.multiply(thre_var_util_r003, 100.0).transpose(), ['50\%', '60\%'], 'Threshold', 'Maximum link utilization (\%)', 'thre_var_util_r003')
-plot_box(thre_var_sync_r003, ['50\%', '60\%'], 'Traffic Capacity Ratio', 'Number of Synchronizations', 'thre_var_sync_r003')
-
-# ratio 004 threshold variable
-plot_box(np.multiply(thre_var_util_r004, 100.0).transpose(), ['50\%', '60\%'], 'Threshold', 'Maximum link utilization (\%)', 'thre_var_util_r004')
-plot_box(thre_var_sync_r004, ['50\%', '60\%'], 'Threshold', 'Number of Synchronizations', 'thre_var_sync_r004')
