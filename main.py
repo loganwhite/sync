@@ -81,6 +81,12 @@ def main(traffic_gen_ratio, threshold, epoch):
     res_utils = []
     res_syncs = []
 
+    res_before1op = []
+    res_1op = []
+    res_2op = []
+
+    res_1op_times = []
+
     # for matrix in matrices_list[:1]:
     for matrix in range(epoch):
         # used for att network
@@ -124,6 +130,11 @@ def main(traffic_gen_ratio, threshold, epoch):
         sub_tpls = []
         sub_new_y = []
 
+        sub_util_before_1op = []
+        sub_util_1op = []
+        sub_util_2op = []
+
+        sub_1op_times = 0
         # (old flow id, new flow id) pair of each subnet
         sub_flow_pair = []
         for i in range(len(subnet_list)):
@@ -145,6 +156,9 @@ def main(traffic_gen_ratio, threshold, epoch):
             sub_all_flow_ids.append(get_all_flows(subnet_list[i]))
             sub_link_rates.append(get_link_rate(subnet_list[i]))
 
+            # before 1op
+            sub_util_before_1op.append(prev_util)
+
             if prev_util <= threshold:
                 print("subnetwork %d already satisfied the link util criteria\n" % i)
                 continue
@@ -155,6 +169,7 @@ def main(traffic_gen_ratio, threshold, epoch):
 
             tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i], sub_flows_rates[i],
                                                     sub_link_rates[i], critical_flow_subs[i])
+            sub_1op_times += 1
 
             # for flow_id, flow in subnet_list[i].inner_flow_dict.iteritems():
             #     print("%d\t%d\n" %(flow_id, flow.cur_path_id))
@@ -163,6 +178,9 @@ def main(traffic_gen_ratio, threshold, epoch):
             sub_new_y.append(tmp_new_y)
             subnet_list[i].apply_modification(tmp_tpls, sub_oldys[i], tmp_new_y)
             tmp_util = subnet_list[i].calc_link_utilization()
+
+            # 1op
+            sub_util_1op.append(tmp_util)
             # print("start showing link util after")
             # test_print_all_link_above_threshold(subnet_list[i], threshold)
 
@@ -175,6 +193,7 @@ def main(traffic_gen_ratio, threshold, epoch):
                 continue
 
             # adjust with current subnet src and dst
+            sub_oldys.append(get_old_y(subnet_list[i]))
             tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i],
                                                      sub_flows_rates[i],
                                                      sub_link_rates[i],
@@ -185,6 +204,9 @@ def main(traffic_gen_ratio, threshold, epoch):
             subnet_list[i].apply_modification(tmp_tpls, sub_oldys[i], tmp_new_y)
 
             new_tmp_util = subnet_list[i].calc_link_utilization()
+
+            # 2op
+            sub_util_2op.append(new_tmp_util)
             print("1st reroute linkutil %f of subnetwork %d\n" % (new_tmp_util, i))
 
             # change the dst until satisfy the link util requirement
@@ -229,7 +251,12 @@ def main(traffic_gen_ratio, threshold, epoch):
         res_utils.append(final_list)
         res_syncs.append(sync_times)
 
-    return res_utils, res_syncs
+        res_before1op.append(sub_util_before_1op)
+        res_1op.append(sub_util_1op)
+        res_2op.append(sub_util_2op)
+        res_1op_times.append(sub_1op_times)
+
+    return res_utils, res_syncs, res_before1op, res_1op, res_2op, res_1op_times
 
 
 
@@ -770,18 +797,35 @@ if __name__ == '__main__':
         os.makedirs('data')
     f_u = open('data/util', 'w')
     f_s = open('data/sync', 'w')
+    f_b1op = open('data/before1op', 'w')
+    f_1op = open('data/1op', 'w')
+    f_2op = open('data/2op', 'w')
+    f_1optime = open('data/1optime', 'w')
     for traffic_gen_ratio in traffic_gen_ratios:
         for threshold in thresholds:
-            res_utils, res_syncs = main(traffic_gen_ratio, threshold, epoch)
+            res_utils, res_syncs, res_before1op, res_1op, res_2op, res_1op_times = main(traffic_gen_ratio, threshold, epoch)
 
             util_varname = 'utils_ratio_{}_threshold_{}'.format(traffic_gen_ratio, threshold)
             sync_varname = 'syncs_ratio_{}_threshold_{}'.format(traffic_gen_ratio, threshold)
+            before1op_varname = 'before1op_ratio_{}_threshold_{}'.format(traffic_gen_ratio, threshold)
+            u1op_varname = 'u1op_ratio_{}_threshold_{}'.format(traffic_gen_ratio, threshold)
+            u2op_varname = 'u2op_ratio_{}_threshold_{}'.format(traffic_gen_ratio, threshold)
+            u1optime_varname = 'u1optimes_ratio_{}_threshold_{}'.format(traffic_gen_ratio, threshold)
+
             print sync_varname
 
             f_u.write("%s=%s\n" % (util_varname, res_utils))
             f_s.write("%s=%s\n" % (sync_varname, res_syncs))
+            f_b1op.write("%s=%s\n" % (before1op_varname, res_before1op))
+            f_1op.write("%s=%s\n" % (u1op_varname, res_1op))
+            f_2op.write("%s=%s\n" % (u2op_varname, res_2op))
+            f_1optime.write("%s=%s\n" % (u1optime_varname, res_1op_times))
     f_u.close()
     f_s.close()
+    f_b1op.close()
+    f_1op.close()
+    f_2op.close()
+    f_1optime.close()
 
 
 
