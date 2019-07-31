@@ -760,8 +760,8 @@ def get_oldnew_flowpair_list(tmp_tpls):
 
 if __name__ == '__main__':
 
-    traffic_gen_ratios = [0.01,0.02,0.03,0.04, 0.05]
-    thresholds = [0.3, 0.4, 0.5, 0.6]
+    traffic_gen_ratios = [0.01,0.02,0.03,0.04]
+    thresholds = [0.5, 0.6]
     epoch = 20
     if not os.path.exists('data'):
         os.makedirs('data')
