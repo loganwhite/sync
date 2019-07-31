@@ -220,6 +220,7 @@ def main(traffic_gen_ratio, threshold, epoch):
             subnet_list[i].fall_back_shortest_path()
 
         # end for
+        n.fall_back_shortest_path()
 
         final_list = adjust_subnets_ingree(subnet_list, n, sub_flow_pair, subgraph_list)
         sync_times = len(sub_flow_pair)
