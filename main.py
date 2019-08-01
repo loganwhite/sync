@@ -198,7 +198,7 @@ def main(traffic_gen_ratio, threshold, epoch):
             tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i],
                                                      sub_flows_rates[i],
                                                      sub_link_rates[i],
-                                                     critical_flow_subs[i])
+                                                     traversing_flow)
 
             sub_tpls.append(tmp_tpls)
             sub_new_y.append(tmp_new_y)
