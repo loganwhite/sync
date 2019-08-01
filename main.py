@@ -194,6 +194,7 @@ def main(traffic_gen_ratio, threshold, epoch):
 
             # adjust with current subnet src and dst
             sub_oldys.append(get_old_y(subnet_list[i]))
+            traversing_flow = get_traversing_flows(subnet_list[i])
             tmp_tpls, tmp_new_y = sub_ops[i].process(sub_oldys[i],
                                                      sub_flows_rates[i],
                                                      sub_link_rates[i],
@@ -318,7 +319,17 @@ def main(traffic_gen_ratio, threshold, epoch):
 
 
 
-
+def get_traversing_flows(subnet):
+    """
+    get traversing flows of subnetwork
+    :param subnet: the subnetwork object
+    :return: the traversal flow id list
+    """
+    res_list = []
+    for flow_id, flow in subnet.inner_flow_dict.iteritems():
+        if flow.is_subflow:
+            res_list.append(flow_id)
+    return res_list
 
 
 
