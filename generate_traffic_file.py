@@ -55,13 +55,16 @@ def read_matrix_list_file(filename):
 def main():
     traffic_gen_ratio = [0.001, 0.002, 0.003, 0.004]
     matrix_num = 10
-    filename = 'traffic_matrix_list_r{}'
+
     for ratio in traffic_gen_ratio:
+        filename = 'traffic_matrix_list_r{}'
         matrix_list = []
         for i in range(matrix_num):
             matrix = generate_traffic_matrix((25, 25), link_capacity, ratio)
             matrix_list.append(matrix.tolist())
         filename = filename.format(ratio)
+        print ratio
+        print filename
         save_matrix_list_file(filename, matrix_list)
 
 
